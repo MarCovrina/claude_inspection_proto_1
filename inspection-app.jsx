@@ -617,7 +617,12 @@ const InspectionApp = () => {
       const defects = [];
       selectedTechPlace.stages.forEach(stage => {
         stage.defects.forEach(defect => {
-          if (defect.severity !== 'none') {
+          // Дефекты с критичностью или с фото или с комментарием
+          const hasSeverity = defect.severity !== 'none';
+          const hasPhotos = defect.photos && defect.photos.length > 0;
+          const hasComment = defect.comment && defect.comment.trim() !== '';
+          
+          if (hasSeverity || hasPhotos || hasComment) {
             defects.push({
               ...defect,
               stageName: stage.name
@@ -642,6 +647,7 @@ const InspectionApp = () => {
 
     // Получение цвета критичности
     const getSeverityColor = (severity) => {
+      if (severity === 'none') return '#d9d9d9';
       switch(severity) {
         case 'low': return '#d4b106';
         case 'medium': return '#d46b08';
@@ -689,8 +695,8 @@ const InspectionApp = () => {
                   
                   <div>
                     <span style={{ color: '#666', fontSize: '14px' }}>Критичность: </span>
-                    <Tag color={defect.severity === 'low' ? 'gold' : defect.severity === 'medium' ? 'orange' : 'red'}>
-                      {defect.severity === 'low' ? 'Низкий' : defect.severity === 'medium' ? 'Средний' : 'Высокий'}
+                    <Tag color={defect.severity === 'none' ? 'default' : defect.severity === 'low' ? 'gold' : defect.severity === 'medium' ? 'orange' : 'red'}>
+                      {defect.severity === 'none' ? 'Нет' : defect.severity === 'low' ? 'Низкий' : defect.severity === 'medium' ? 'Средний' : 'Высокий'}
                     </Tag>
                   </div>
                 </div>
