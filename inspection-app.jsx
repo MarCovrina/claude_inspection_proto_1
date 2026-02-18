@@ -4,7 +4,7 @@ import { SearchOutlined, PlusOutlined, ArrowLeftOutlined, FilterOutlined } from 
 import { initialTechPlaces } from './mockData';
 
 const InspectionApp = () => {
-  const [currentScreen, setCurrentScreen] = useState('main'); // main, techPlaces, stages, defects, inspectionCheck
+  const [currentScreen, setCurrentScreen] = useState('main'); // main, techPlaces, stages, defects, inspectionCheck, masterDefects
   const [techPlaces, setTechPlaces] = useState(initialTechPlaces);
   const [selectedTechPlace, setSelectedTechPlace] = useState(null);
   const [selectedStage, setSelectedStage] = useState(null);
@@ -474,6 +474,10 @@ const InspectionApp = () => {
 
   // Экран проверки листа осмотра (для мастера)
   const InspectionCheckScreen = () => {
+    const [inspectionSearchText, setInspectionSearchText] = useState('');
+    const [inspectionTypeFilter, setInspectionTypeFilter] = useState('all');
+    const [defectFilter, setDefectFilter] = useState('all'); // all, has-defects, no-defects
+
     // Подсчет дефектов для тех.места
     const getTechPlaceDefects = (techPlace) => {
       let newDefects = 0;
@@ -494,6 +498,25 @@ const InspectionApp = () => {
       return { newDefects, totalDefects };
     };
 
+    // Фильтрация тех.мест
+    const filteredTechPlaces = techPlaces.filter(tp => {
+      const matchesSearch = tp.name.toLowerCase().includes(inspectionSearchText.toLowerCase());
+      const matchesType = inspectionTypeFilter === 'all' || tp.type === inspectionTypeFilter;
+      const { totalDefects } = getTechPlaceDefects(tp);
+      
+      let matchesDefectFilter = true;
+      if (defectFilter === 'has-defects') {
+        matchesDefectFilter = totalDefects > 0;
+      } else if (defectFilter === 'no-defects') {
+        matchesDefectFilter = totalDefects === 0;
+      }
+      
+      return matchesSearch && matchesType && matchesDefectFilter;
+    });
+
+    // Получение уникальных типов
+    const uniqueTypes = ['all', ...new Set(techPlaces.map(tp => tp.type))];
+
     return (
       <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
         <Button 
@@ -506,16 +529,54 @@ const InspectionApp = () => {
         
         <h1 style={{ marginBottom: '24px' }}>Проверка листа осмотра</h1>
 
+        <div style={{ marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <Input
+            placeholder="Поиск по наименованию"
+            prefix={<SearchOutlined />}
+            value={inspectionSearchText}
+            onChange={(e) => setInspectionSearchText(e.target.value)}
+            style={{ flex: 1, minWidth: '200px' }}
+          />
+          <Select
+            value={inspectionTypeFilter}
+            onChange={setInspectionTypeFilter}
+            style={{ width: 200 }}
+            placeholder="Фильтр по типу"
+          >
+            {uniqueTypes.map(type => (
+              <Select.Option key={type} value={type}>
+                {type === 'all' ? 'Все типы' : type}
+              </Select.Option>
+            ))}
+          </Select>
+          <Select
+            value={defectFilter}
+            onChange={setDefectFilter}
+            style={{ width: 200 }}
+            placeholder="Фильтр по дефектам"
+          >
+            <Select.Option value="all">Все</Select.Option>
+            <Select.Option value="has-defects">Есть дефекты</Select.Option>
+            <Select.Option value="no-defects">Нет дефектов</Select.Option>
+          </Select>
+        </div>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {techPlaces.map(techPlace => {
+          {filteredTechPlaces.map(techPlace => {
             const { newDefects, totalDefects } = getTechPlaceDefects(techPlace);
             
             return (
               <Card
                 key={techPlace.id}
+                hoverable
+                onClick={() => {
+                  setSelectedTechPlace(techPlace);
+                  setCurrentScreen('masterDefects');
+                }}
                 style={{ 
                   borderRadius: '8px',
-                  borderLeft: totalDefects > 0 ? '6px solid #ff4d4f' : '6px solid #52c41a'
+                  borderLeft: totalDefects > 0 ? '6px solid #ff4d4f' : '6px solid #52c41a',
+                  cursor: 'pointer'
                 }}
                 bodyStyle={{ padding: '20px 24px' }}
               >
@@ -549,6 +610,133 @@ const InspectionApp = () => {
     );
   };
 
+  // Экран проверки дефектов (для мастера)
+  const MasterDefectsScreen = () => {
+    // Получение всех дефектов для выбранного тех.места
+    const getAllDefects = () => {
+      const defects = [];
+      selectedTechPlace.stages.forEach(stage => {
+        stage.defects.forEach(defect => {
+          if (defect.severity !== 'none') {
+            defects.push({
+              ...defect,
+              stageName: stage.name
+            });
+          }
+        });
+      });
+      return defects;
+    };
+
+    const defects = getAllDefects();
+
+    // Получение цвета статуса
+    const getStatusColor = (status) => {
+      switch(status) {
+        case 'new': return 'blue';
+        case 'repeat': return 'orange';
+        case 'not-confirmed': return 'default';
+        default: return 'default';
+      }
+    };
+
+    // Получение цвета критичности
+    const getSeverityColor = (severity) => {
+      switch(severity) {
+        case 'low': return '#d4b106';
+        case 'medium': return '#d46b08';
+        case 'high': return '#cf1322';
+        default: return '#000';
+      }
+    };
+
+    return (
+      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+        <Button 
+          icon={<ArrowLeftOutlined />} 
+          onClick={() => setCurrentScreen('inspectionCheck')}
+          style={{ marginBottom: '16px' }}
+        >
+          Назад
+        </Button>
+        
+        <h1 style={{ marginBottom: '24px' }}>{selectedTechPlace.name}</h1>
+        <p style={{ marginBottom: '24px', color: '#666' }}>Дефекты для проверки мастером</p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {defects.map(defect => (
+            <Card
+              key={defect.id}
+              style={{ 
+                borderRadius: '8px',
+                borderLeft: `4px solid ${getSeverityColor(defect.severity)}`
+              }}
+              bodyStyle={{ padding: '20px 24px' }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{defect.name}</h3>
+                  <Tag color={getStatusColor(defect.status)}>
+                    {defect.status === 'new' ? 'Новый' : defect.status === 'repeat' ? 'Повтор' : 'Не подтвержден'}
+                  </Tag>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ color: '#666', fontSize: '14px' }}>Дата обнаружения: </span>
+                    <span style={{ fontWeight: '500' }}>{defect.date}</span>
+                  </div>
+                  
+                  <div>
+                    <span style={{ color: '#666', fontSize: '14px' }}>Критичность: </span>
+                    <Tag color={defect.severity === 'low' ? 'gold' : defect.severity === 'medium' ? 'orange' : 'red'}>
+                      {defect.severity === 'low' ? 'Низкий' : defect.severity === 'medium' ? 'Средний' : 'Высокий'}
+                    </Tag>
+                  </div>
+                </div>
+
+                {defect.photos && defect.photos.length > 0 && (
+                  <div>
+                    <div style={{ marginBottom: '8px', fontWeight: '500' }}>Фотографии:</div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {defect.photos.map((photo, idx) => (
+                        <img 
+                          key={idx} 
+                          src={photo.url} 
+                          alt={`Фото ${idx + 1}`}
+                          style={{ 
+                            width: '100px', 
+                            height: '100px', 
+                            objectFit: 'cover',
+                            borderRadius: '4px',
+                            border: '1px solid #d9d9d9'
+                          }} 
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {defect.comment && (
+                  <div>
+                    <span style={{ color: '#666', fontSize: '14px' }}>Комментарий: </span>
+                    <span>{defect.comment}</span>
+                  </div>
+                )}
+              </div>
+            </Card>
+          ))}
+
+          {defects.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              Нет дефектов для отображения
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       <style>{`
@@ -573,6 +761,7 @@ const InspectionApp = () => {
       {currentScreen === 'stages' && <StagesScreen />}
       {currentScreen === 'defects' && <DefectsScreen />}
       {currentScreen === 'inspectionCheck' && <InspectionCheckScreen />}
+      {currentScreen === 'masterDefects' && <MasterDefectsScreen />}
     </div>
   );
 };
