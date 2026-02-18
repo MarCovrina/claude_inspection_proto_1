@@ -216,7 +216,7 @@ const InspectionApp = () => {
     </div>
   );
 
-  // Экран списка тех.мест
+  // Экран списка техмест (для исполнителя)
   const TechPlacesScreen = () => (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       <Button 
@@ -306,7 +306,7 @@ const InspectionApp = () => {
     </div>
   );
 
-  // Экран списка этапов
+  // Экран списка этапов (для исполнителя)
   const StagesScreen = () => (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
       <Button 
@@ -368,7 +368,7 @@ const InspectionApp = () => {
     </div>
   );
 
-  // Экран списка дефектов
+  // Экран списка дефектов (для исполнителя)
   const DefectsScreen = () => {
     const filteredDefects = getFilteredDefects();
     
