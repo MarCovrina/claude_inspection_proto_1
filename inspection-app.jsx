@@ -4,7 +4,7 @@ import { SearchOutlined, PlusOutlined, ArrowLeftOutlined, FilterOutlined } from 
 import { initialTechPlaces } from './mockData';
 
 const InspectionApp = () => {
-  const [currentScreen, setCurrentScreen] = useState('techPlaces'); // techPlaces, stages, defects
+  const [currentScreen, setCurrentScreen] = useState('main'); // main, techPlaces, stages, defects
   const [techPlaces, setTechPlaces] = useState(initialTechPlaces);
   const [selectedTechPlace, setSelectedTechPlace] = useState(null);
   const [selectedStage, setSelectedStage] = useState(null);
@@ -187,9 +187,46 @@ const InspectionApp = () => {
     return selectedStage.defects.filter(d => d.severity !== 'none');
   };
 
+  // Главный экран
+  const MainScreen = () => (
+    <div style={{ 
+      padding: '24px', 
+      maxWidth: '800px', 
+      margin: '0 auto',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <Card style={{ width: '100%', textAlign: 'center', padding: '20px' }}>
+        <h1 style={{ marginBottom: '32px', fontSize: '28px' }}>Система осмотра оборудования</h1>
+        <p style={{ marginBottom: '32px', fontSize: '16px', color: '#666' }}>
+          Добро пожаловать в систему осмотра технических мест
+        </p>
+        <Button 
+          type="primary" 
+          size="large" 
+          onClick={() => setCurrentScreen('techPlaces')}
+          style={{ minWidth: '200px', height: '50px', fontSize: '18px' }}
+        >
+          Заполнить
+        </Button>
+      </Card>
+    </div>
+  );
+
   // Экран списка тех.мест
   const TechPlacesScreen = () => (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+      <Button 
+        icon={<ArrowLeftOutlined />} 
+        onClick={() => setCurrentScreen('main')}
+        style={{ marginBottom: '16px' }}
+      >
+        На главную
+      </Button>
+      
       <h1 style={{ marginBottom: '24px' }}>Технические места</h1>
       
       <div style={{ marginBottom: '24px', display: 'flex', gap: '16px' }}>
@@ -444,6 +481,7 @@ const InspectionApp = () => {
           font-weight: 600;
         }
       `}</style>
+      {currentScreen === 'main' && <MainScreen />}
       {currentScreen === 'techPlaces' && <TechPlacesScreen />}
       {currentScreen === 'stages' && <StagesScreen />}
       {currentScreen === 'defects' && <DefectsScreen />}
