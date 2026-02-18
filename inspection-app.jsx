@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Input, Card, Progress, Tag, Button, Upload, Select, Badge, Segmented } from 'antd';
-import { SearchOutlined, PlusOutlined, ArrowLeftOutlined, FilterOutlined } from '@ant-design/icons';
+import { SearchOutlined, PlusOutlined, ArrowLeftOutlined, FilterOutlined, EditOutlined, SaveOutlined, CloseOutlined, EditFilled } from '@ant-design/icons';
 import { initialTechPlaces } from './mockData';
 
 const InspectionApp = () => {
@@ -612,6 +612,9 @@ const InspectionApp = () => {
 
   // Экран проверки дефектов (для мастера)
   const MasterDefectsScreen = () => {
+    const [editingDefectId, setEditingDefectId] = useState(null);
+    const [editedDefects, setEditedDefects] = useState({}); // { defectId: { severity: boolean } }
+
     // Получение всех дефектов для выбранного тех.места
     const getAllDefects = () => {
       const defects = [];
@@ -656,6 +659,67 @@ const InspectionApp = () => {
       }
     };
 
+    // Обработчик редактирования дефекта
+    const handleEditDefect = (defectId) => {
+      if (editingDefectId === defectId) {
+        // Сохранить изменения
+        setEditingDefectId(null);
+      } else {
+        // Переключить в режим редактирования
+        setEditingDefectId(defectId);
+      }
+    };
+
+    // Отмена изменений
+    const handleCancelEdit = () => {
+      setEditingDefectId(null);
+    };
+
+    // Обновление критичности дефекта
+    const handleSeverityChange = (defectId, newSeverity) => {
+      const defect = defects.find(d => d.id === defectId);
+      if (defect && defect.severity !== newSeverity) {
+        setEditedDefects(prev => ({
+          ...prev,
+          [defectId]: {
+            ...(prev[defectId] || {}),
+            severity: true
+          }
+        }));
+        // Обновляем дефект в techPlaces
+        updateDefectSeverityMaster(defectId, newSeverity);
+      }
+    };
+
+    // Обновление дефекта в techPlaces
+    const updateDefectSeverityMaster = (defectId, severity) => {
+      const updatedTechPlaces = techPlaces.map(tp => {
+        if (tp.id === selectedTechPlace.id) {
+          return {
+            ...tp,
+            stages: tp.stages.map(stage => {
+              return {
+                ...stage,
+                defects: stage.defects.map(defect => 
+                  defect.id === defectId ? { ...defect, severity } : defect
+                )
+              };
+            })
+          };
+        }
+        return tp;
+      });
+      setTechPlaces(updatedTechPlaces);
+      // Обновляем selectedTechPlace
+      const updatedTechPlace = updatedTechPlaces.find(tp => tp.id === selectedTechPlace.id);
+      setSelectedTechPlace(updatedTechPlace);
+    };
+
+    // Проверка, был ли изменен параметр
+    const isParameterEdited = (defectId, param) => {
+      return editedDefects[defectId]?.[param] || false;
+    };
+
     return (
       <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
         <Button 
@@ -675,16 +739,47 @@ const InspectionApp = () => {
               key={defect.id}
               style={{ 
                 borderRadius: '8px',
-                borderLeft: `4px solid ${getSeverityColor(defect.severity)}`
+                borderLeft: `4px solid ${getSeverityColor(defect.severity)}`,
+                border: editingDefectId === defect.id ? '2px solid #1890ff' : undefined,
+                transition: 'all 0.3s'
               }}
               bodyStyle={{ padding: '20px 24px' }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{defect.name}</h3>
-                  <Tag color={getStatusColor(defect.status)}>
-                    {defect.status === 'new' ? 'Новый' : defect.status === 'repeat' ? 'Повтор' : 'Не подтвержден'}
-                  </Tag>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <Tag color={getStatusColor(defect.status)}>
+                      {defect.status === 'new' ? 'Новый' : defect.status === 'repeat' ? 'Повтор' : 'Не подтвержден'}
+                    </Tag>
+                    {editingDefectId === defect.id ? (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <Button 
+                          type="primary"
+                          icon={<SaveOutlined />}
+                          onClick={() => handleEditDefect(defect.id)}
+                          size="small"
+                        >
+                          Сохранить
+                        </Button>
+                        <Button 
+                          icon={<CloseOutlined />}
+                          onClick={handleCancelEdit}
+                          size="small"
+                        >
+                          Отменить
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button 
+                        icon={<EditOutlined />}
+                        onClick={() => handleEditDefect(defect.id)}
+                        size="small"
+                      >
+                        Редактировать
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 
                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -695,9 +790,26 @@ const InspectionApp = () => {
                   
                   <div>
                     <span style={{ color: '#666', fontSize: '14px' }}>Критичность: </span>
-                    <Tag color={defect.severity === 'none' ? 'default' : defect.severity === 'low' ? 'gold' : defect.severity === 'medium' ? 'orange' : 'red'}>
-                      {defect.severity === 'none' ? 'Нет' : defect.severity === 'low' ? 'Низкий' : defect.severity === 'medium' ? 'Средний' : 'Высокий'}
-                    </Tag>
+                    {editingDefectId === defect.id ? (
+                      <Segmented
+                        value={defect.severity}
+                        onChange={(value) => handleSeverityChange(defect.id, value)}
+                        options={[
+                          { label: 'Нет', value: 'none' },
+                          { label: 'Низкий', value: 'low' },
+                          { label: 'Средний', value: 'medium' },
+                          { label: 'Высокий', value: 'high' },
+                        ]}
+                        size="small"
+                      />
+                    ) : (
+                      <>
+                        <Tag color={defect.severity === 'none' ? 'default' : defect.severity === 'low' ? 'gold' : defect.severity === 'medium' ? 'orange' : 'red'}>
+                          {defect.severity === 'none' ? 'Нет' : defect.severity === 'low' ? 'Низкий' : defect.severity === 'medium' ? 'Средний' : 'Высокий'}
+                        </Tag>
+                        {isParameterEdited(defect.id, 'severity') && <EditFilled style={{ color: '#faad14', marginLeft: '4px' }} />}
+                      </>
+                    )}
                   </div>
                 </div>
 
