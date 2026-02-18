@@ -4,7 +4,7 @@ import { SearchOutlined, PlusOutlined, ArrowLeftOutlined, FilterOutlined } from 
 import { initialTechPlaces } from './mockData';
 
 const InspectionApp = () => {
-  const [currentScreen, setCurrentScreen] = useState('main'); // main, techPlaces, stages, defects
+  const [currentScreen, setCurrentScreen] = useState('main'); // main, techPlaces, stages, defects, inspectionCheck
   const [techPlaces, setTechPlaces] = useState(initialTechPlaces);
   const [selectedTechPlace, setSelectedTechPlace] = useState(null);
   const [selectedStage, setSelectedStage] = useState(null);
@@ -204,14 +204,24 @@ const InspectionApp = () => {
         <p style={{ marginBottom: '32px', fontSize: '16px', color: '#666' }}>
           Добро пожаловать в систему осмотра технических мест
         </p>
-        <Button 
-          type="primary" 
-          size="large" 
-          onClick={() => setCurrentScreen('techPlaces')}
-          style={{ minWidth: '200px', height: '50px', fontSize: '18px' }}
-        >
-          Заполнить
-        </Button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+          <Button 
+            type="primary" 
+            size="large" 
+            onClick={() => setCurrentScreen('techPlaces')}
+            style={{ minWidth: '200px', height: '50px', fontSize: '18px' }}
+          >
+            Заполнить
+          </Button>
+          <Button 
+            type="default" 
+            size="large" 
+            onClick={() => setCurrentScreen('inspectionCheck')}
+            style={{ minWidth: '200px', height: '50px', fontSize: '18px' }}
+          >
+            Проверка листа осмотра
+          </Button>
+        </div>
       </Card>
     </div>
   );
@@ -462,6 +472,83 @@ const InspectionApp = () => {
     );
   };
 
+  // Экран проверки листа осмотра (для мастера)
+  const InspectionCheckScreen = () => {
+    // Подсчет дефектов для тех.места
+    const getTechPlaceDefects = (techPlace) => {
+      let newDefects = 0;
+      let totalDefects = 0;
+      
+      techPlace.stages.forEach(stage => {
+        stage.defects.forEach(defect => {
+          if (defect.severity !== 'none') {
+            totalDefects++;
+            // Новые дефекты - это дефекты на осмотренных этапах
+            if (stage.inspected) {
+              newDefects++;
+            }
+          }
+        });
+      });
+      
+      return { newDefects, totalDefects };
+    };
+
+    return (
+      <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
+        <Button 
+          icon={<ArrowLeftOutlined />} 
+          onClick={() => setCurrentScreen('main')}
+          style={{ marginBottom: '16px' }}
+        >
+          На главную
+        </Button>
+        
+        <h1 style={{ marginBottom: '24px' }}>Проверка листа осмотра</h1>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {techPlaces.map(techPlace => {
+            const { newDefects, totalDefects } = getTechPlaceDefects(techPlace);
+            
+            return (
+              <Card
+                key={techPlace.id}
+                style={{ 
+                  borderRadius: '8px',
+                  borderLeft: totalDefects > 0 ? '6px solid #ff4d4f' : '6px solid #52c41a'
+                }}
+                bodyStyle={{ padding: '20px 24px' }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{techPlace.name}</h3>
+                    <Tag color="blue">{techPlace.type}</Tag>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                    <div>
+                      <span style={{ color: '#666', fontSize: '14px' }}>Новые дефекты: </span>
+                      <Tag color={newDefects > 0 ? 'red' : 'green'}>
+                        {newDefects}
+                      </Tag>
+                    </div>
+                    
+                    <div>
+                      <span style={{ color: '#666', fontSize: '14px' }}>Всего дефектов: </span>
+                      <Tag color={totalDefects > 0 ? 'orange' : 'default'}>
+                        {totalDefects}
+                      </Tag>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       <style>{`
@@ -485,6 +572,7 @@ const InspectionApp = () => {
       {currentScreen === 'techPlaces' && <TechPlacesScreen />}
       {currentScreen === 'stages' && <StagesScreen />}
       {currentScreen === 'defects' && <DefectsScreen />}
+      {currentScreen === 'inspectionCheck' && <InspectionCheckScreen />}
     </div>
   );
 };
