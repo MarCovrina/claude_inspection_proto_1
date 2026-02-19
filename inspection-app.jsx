@@ -26,6 +26,7 @@ const InspectionApp = () => {
   // Получение цвета статуса
   const getStatusColor = (status) => {
     switch(status) {
+      
       case 'no-defects': return '#52c41a';
       case 'has-defects': return '#ff4d4f';
       case 'not-inspected': return '#d9d9d9';
