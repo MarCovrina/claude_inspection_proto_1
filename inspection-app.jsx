@@ -521,7 +521,10 @@ const InspectionApp = () => {
         matchesDefectFilter = totalDefects === 0;
       }
       
-      return matchesSearch && matchesType && matchesDefectFilter;
+      // Исключаем тех.места с 0 осмотренных этапов
+      const hasInspectedStages = tp.stages.some(stage => stage.inspected);
+      
+      return matchesSearch && matchesType && matchesDefectFilter && hasInspectedStages;
     });
 
     // Получение уникальных типов
