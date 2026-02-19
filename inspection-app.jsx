@@ -16,6 +16,7 @@ const InspectionApp = () => {
 
   // Получение статуса тех.места
   const getTechPlaceStatus = (techPlace) => {
+    
     const hasInspectedStages = techPlace.stages.some(s => s.inspected);
     if (!hasInspectedStages) return 'not-inspected';
     
