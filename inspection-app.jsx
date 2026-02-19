@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Input, Card, Progress, Tag, Button, Upload, Select, Badge, Segmented } from 'antd';
-import { SearchOutlined, PlusOutlined, ArrowLeftOutlined, FilterOutlined, EditOutlined, SaveOutlined, CloseOutlined, EditFilled } from '@ant-design/icons';
+import { SearchOutlined, PlusOutlined, ArrowLeftOutlined, FilterOutlined, EditOutlined } from '@ant-design/icons';
 import { initialTechPlaces } from './mockData';
 
 const InspectionApp = () => {
@@ -613,7 +613,7 @@ const InspectionApp = () => {
   // Экран проверки дефектов (для мастера)
   const MasterDefectsScreen = () => {
     const [editingDefectId, setEditingDefectId] = useState(null);
-    const [editedDefects, setEditedDefects] = useState({}); // { defectId: { severity: boolean } }
+    const [tempSeverity, setTempSeverity] = useState({});
 
     // Получение всех дефектов для выбранного тех.места
     const getAllDefects = () => {
@@ -659,40 +659,24 @@ const InspectionApp = () => {
       }
     };
 
-    // Обработчик редактирования дефекта
-    const handleEditDefect = (defectId) => {
-      if (editingDefectId === defectId) {
-        // Сохранить изменения
-        setEditingDefectId(null);
-      } else {
-        // Переключить в режим редактирования
-        setEditingDefectId(defectId);
-      }
+    // Начать редактирование
+    const handleStartEdit = (defect) => {
+      setEditingDefectId(defect.id);
+      setTempSeverity(prev => ({ ...prev, [defect.id]: defect.severity }));
     };
 
-    // Отмена изменений
-    const handleCancelEdit = () => {
+    // Сохранить изменения
+    const handleSaveEdit = () => {
+      setEditingDefectId(null);
+    };
+
+    // Отменить изменения
+    const handleCancelEdit = (defectId) => {
       setEditingDefectId(null);
     };
 
     // Обновление критичности дефекта
-    const handleSeverityChange = (defectId, newSeverity) => {
-      const defect = defects.find(d => d.id === defectId);
-      if (defect && defect.severity !== newSeverity) {
-        setEditedDefects(prev => ({
-          ...prev,
-          [defectId]: {
-            ...(prev[defectId] || {}),
-            severity: true
-          }
-        }));
-        // Обновляем дефект в techPlaces
-        updateDefectSeverityMaster(defectId, newSeverity);
-      }
-    };
-
-    // Обновление дефекта в techPlaces
-    const updateDefectSeverityMaster = (defectId, severity) => {
+    const updateDefectSeverity = (defectId, severity) => {
       const updatedTechPlaces = techPlaces.map(tp => {
         if (tp.id === selectedTechPlace.id) {
           return {
@@ -710,15 +694,25 @@ const InspectionApp = () => {
         return tp;
       });
       setTechPlaces(updatedTechPlaces);
-      // Обновляем selectedTechPlace
       const updatedTechPlace = updatedTechPlaces.find(tp => tp.id === selectedTechPlace.id);
       setSelectedTechPlace(updatedTechPlace);
     };
 
-    // Проверка, был ли изменен параметр
-    const isParameterEdited = (defectId, param) => {
-      return editedDefects[defectId]?.[param] || false;
+    // Изменение критичности
+    const handleSeverityChange = (defectId, newSeverity) => {
+      setTempSeverity(prev => ({ ...prev, [defectId]: newSeverity }));
+      updateDefectSeverity(defectId, newSeverity);
     };
+
+    // Получение актуальной критичности
+    const getCurrentSeverity = (defect) => {
+      if (editingDefectId === defect.id && tempSeverity[defect.id] !== undefined) {
+        return tempSeverity[defect.id];
+      }
+      return defect.severity;
+    };
+
+    const isAnyEditing = editingDefectId !== null;
 
     return (
       <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto' }}>
@@ -734,14 +728,17 @@ const InspectionApp = () => {
         <p style={{ marginBottom: '24px', color: '#666' }}>Дефекты для проверки мастером</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {defects.map(defect => (
+          {defects.map(defect => {
+            const isEditing = editingDefectId === defect.id;
+            const currentSeverity = getCurrentSeverity(defect);
+            
+            return (
             <Card
               key={defect.id}
               style={{ 
                 borderRadius: '8px',
-                borderLeft: `4px solid ${getSeverityColor(defect.severity)}`,
-                border: editingDefectId === defect.id ? '2px solid #1890ff' : undefined,
-                transition: 'all 0.3s'
+                borderLeft: `4px solid ${getSeverityColor(currentSeverity)}`,
+                backgroundColor: isEditing ? '#f5f5f5' : '#fff'
               }}
               bodyStyle={{ padding: '20px 24px' }}
             >
@@ -752,32 +749,32 @@ const InspectionApp = () => {
                     <Tag color={getStatusColor(defect.status)}>
                       {defect.status === 'new' ? 'Новый' : defect.status === 'repeat' ? 'Повтор' : 'Не подтвержден'}
                     </Tag>
-                    {editingDefectId === defect.id ? (
-                      <div style={{ display: 'flex', gap: '8px' }}>
+                    {isEditing ? (
+                      <>
                         <Button 
                           type="primary"
-                          icon={<SaveOutlined />}
-                          onClick={() => handleEditDefect(defect.id)}
                           size="small"
+                          onClick={handleSaveEdit}
                         >
                           Сохранить
                         </Button>
                         <Button 
-                          icon={<CloseOutlined />}
-                          onClick={handleCancelEdit}
                           size="small"
+                          onClick={() => handleCancelEdit(defect.id)}
                         >
                           Отменить
                         </Button>
-                      </div>
+                      </>
                     ) : (
-                      <Button 
-                        icon={<EditOutlined />}
-                        onClick={() => handleEditDefect(defect.id)}
-                        size="small"
-                      >
-                        Редактировать
-                      </Button>
+                      !isAnyEditing && (
+                        <Button 
+                          size="small"
+                          icon={<EditOutlined />}
+                          onClick={() => handleStartEdit(defect)}
+                        >
+                          Редактировать
+                        </Button>
+                      )
                     )}
                   </div>
                 </div>
@@ -790,9 +787,9 @@ const InspectionApp = () => {
                   
                   <div>
                     <span style={{ color: '#666', fontSize: '14px' }}>Критичность: </span>
-                    {editingDefectId === defect.id ? (
+                    {isEditing ? (
                       <Segmented
-                        value={defect.severity}
+                        value={currentSeverity}
                         onChange={(value) => handleSeverityChange(defect.id, value)}
                         options={[
                           { label: 'Нет', value: 'none' },
@@ -803,12 +800,9 @@ const InspectionApp = () => {
                         size="small"
                       />
                     ) : (
-                      <>
-                        <Tag color={defect.severity === 'none' ? 'default' : defect.severity === 'low' ? 'gold' : defect.severity === 'medium' ? 'orange' : 'red'}>
-                          {defect.severity === 'none' ? 'Нет' : defect.severity === 'low' ? 'Низкий' : defect.severity === 'medium' ? 'Средний' : 'Высокий'}
-                        </Tag>
-                        {isParameterEdited(defect.id, 'severity') && <EditFilled style={{ color: '#faad14', marginLeft: '4px' }} />}
-                      </>
+                      <Tag color={currentSeverity === 'none' ? 'default' : currentSeverity === 'low' ? 'gold' : currentSeverity === 'medium' ? 'orange' : 'red'}>
+                        {currentSeverity === 'none' ? 'Нет' : currentSeverity === 'low' ? 'Низкий' : currentSeverity === 'medium' ? 'Средний' : 'Высокий'}
+                      </Tag>
                     )}
                   </div>
                 </div>
@@ -843,7 +837,7 @@ const InspectionApp = () => {
                 )}
               </div>
             </Card>
-          ))}
+          )})}
 
           {defects.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
