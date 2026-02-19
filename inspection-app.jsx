@@ -749,32 +749,14 @@ const InspectionApp = () => {
                     <Tag color={getStatusColor(defect.status)}>
                       {defect.status === 'new' ? 'Новый' : defect.status === 'repeat' ? 'Повтор' : 'Не подтвержден'}
                     </Tag>
-                    {isEditing ? (
-                      <>
-                        <Button 
-                          type="primary"
-                          size="small"
-                          onClick={handleSaveEdit}
-                        >
-                          Сохранить
-                        </Button>
-                        <Button 
-                          size="small"
-                          onClick={() => handleCancelEdit(defect.id)}
-                        >
-                          Отменить
-                        </Button>
-                      </>
-                    ) : (
-                      !isAnyEditing && (
-                        <Button 
-                          size="small"
-                          icon={<EditOutlined />}
-                          onClick={() => handleStartEdit(defect)}
-                        >
-                          Редактировать
-                        </Button>
-                      )
+                    {!isAnyEditing && (
+                      <Button 
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => handleStartEdit(defect)}
+                      >
+                        Редактировать
+                      </Button>
                     )}
                   </div>
                 </div>
