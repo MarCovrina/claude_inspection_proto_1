@@ -3,8 +3,6 @@ import { Input, Card, Progress, Tag, Button, Upload, Select, Badge, Segmented, M
 import { SearchOutlined, PlusOutlined, ArrowLeftOutlined, FilterOutlined, EditOutlined } from '@ant-design/icons';
 import { initialTechPlaces } from './mockData';
 
-
-
 const InspectionApp = () => {
   const [currentScreen, setCurrentScreen] = useState('main'); // main, techPlaces, stages, defects, inspectionCheck, masterDefects, defectRegistry
   const [techPlaces, setTechPlaces] = useState(initialTechPlaces);
