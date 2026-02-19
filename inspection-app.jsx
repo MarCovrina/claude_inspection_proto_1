@@ -1,16 +1,18 @@
 import React, { useState } from 'react';
-import { Input, Card, Progress, Tag, Button, Upload, Select, Badge, Segmented } from 'antd';
+import { Input, Card, Progress, Tag, Button, Upload, Select, Badge, Segmented, Modal, Table } from 'antd';
 import { SearchOutlined, PlusOutlined, ArrowLeftOutlined, FilterOutlined, EditOutlined } from '@ant-design/icons';
 import { initialTechPlaces } from './mockData';
 
 const InspectionApp = () => {
-  const [currentScreen, setCurrentScreen] = useState('main'); // main, techPlaces, stages, defects, inspectionCheck, masterDefects
+  const [currentScreen, setCurrentScreen] = useState('main'); // main, techPlaces, stages, defects, inspectionCheck, masterDefects, defectRegistry
   const [techPlaces, setTechPlaces] = useState(initialTechPlaces);
   const [selectedTechPlace, setSelectedTechPlace] = useState(null);
   const [selectedStage, setSelectedStage] = useState(null);
   const [searchText, setSearchText] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [showOnlyDefects, setShowOnlyDefects] = useState(false);
+  const [defectModalVisible, setDefectModalVisible] = useState(false);
+  const [selectedDefect, setSelectedDefect] = useState(null);
 
   // Получение статуса тех.места
   const getTechPlaceStatus = (techPlace) => {
@@ -220,6 +222,14 @@ const InspectionApp = () => {
             style={{ minWidth: '200px', height: '50px', fontSize: '18px' }}
           >
             Проверка листа осмотра
+          </Button>
+          <Button 
+            type="default" 
+            size="large" 
+            onClick={() => setCurrentScreen('defectRegistry')}
+            style={{ minWidth: '200px', height: '50px', fontSize: '18px' }}
+          >
+            Реестр дефектов
           </Button>
         </div>
       </Card>
@@ -831,6 +841,121 @@ const InspectionApp = () => {
     );
   };
 
+  // Экран реестра дефектов
+  const DefectRegistryScreen = () => {
+    // Получение всех дефектов со всех тех.мест
+    const getAllDefects = () => {
+      const defects = [];
+      techPlaces.forEach(techPlace => {
+        techPlace.stages.forEach(stage => {
+          stage.defects.forEach(defect => {
+            // Дефекты с критичностью или с фото или с комментарием
+            const hasSeverity = defect.severity !== 'none';
+            const hasPhotos = defect.photos && defect.photos.length > 0;
+            const hasComment = defect.comment && defect.comment.trim() !== '';
+            
+            if (hasSeverity || hasPhotos || hasComment) {
+              defects.push({
+                ...defect,
+                techPlaceId: techPlace.id,
+                techPlaceName: techPlace.name,
+                techPlaceType: techPlace.type,
+                stageName: stage.name,
+                stageId: stage.id
+              });
+            }
+          });
+        });
+      });
+      return defects;
+    };
+
+    const allDefects = getAllDefects();
+
+    // Таблица дефектов
+    const columns = [
+      {
+        title: 'Наименование дефекта',
+        dataIndex: 'name',
+        key: 'name',
+        render: (text, record) => (
+          <a 
+            onClick={() => {
+              setSelectedDefect(record);
+              setDefectModalVisible(true);
+            }}
+            style={{ fontWeight: 500 }}
+          >
+            {text}
+          </a>
+        )
+      },
+      {
+        title: 'Объект',
+        dataIndex: 'object',
+        key: 'object',
+        render: () => 'ЛЭП-12'
+      },
+      {
+        title: 'Тех. место',
+        dataIndex: 'techPlaceName',
+        key: 'techPlaceName'
+      },
+      {
+        title: 'Тип тех. места',
+        dataIndex: 'techPlaceType',
+        key: 'techPlaceType',
+        render: (type) => <Tag color="blue">{type}</Tag>
+      },
+      {
+        title: 'Статус',
+        dataIndex: 'status',
+        key: 'status',
+        render: (status) => (
+          <Tag color={status === 'new' ? 'blue' : status === 'repeat' ? 'orange' : status === 'fixed' ? 'green' : 'default'}>
+            {status === 'new' ? 'Новый' : status === 'repeat' ? 'Повторный' : status === 'fixed' ? 'Устранен' : 'Не подтвержден'}
+          </Tag>
+        )
+      },
+      {
+        title: 'Критичность',
+        dataIndex: 'severity',
+        key: 'severity',
+        render: (severity) => (
+          <Tag color={severity === 'none' ? 'default' : severity === 'low' ? 'gold' : severity === 'medium' ? 'orange' : 'red'}>
+            {severity === 'none' ? 'Нет' : severity === 'low' ? 'Низкий' : severity === 'medium' ? 'Средний' : 'Высокий'}
+          </Tag>
+        )
+      },
+      {
+        title: 'Дата обнаружения',
+        dataIndex: 'date',
+        key: 'date'
+      }
+    ];
+
+    return (
+      <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+        <Button 
+          icon={<ArrowLeftOutlined />} 
+          onClick={() => setCurrentScreen('main')}
+          style={{ marginBottom: '16px' }}
+        >
+          На главную
+        </Button>
+        
+        <h1 style={{ marginBottom: '24px' }}>Реестр дефектов</h1>
+
+        <Table 
+          columns={columns} 
+          dataSource={allDefects} 
+          rowKey="id"
+          pagination={{ pageSize: 10 }}
+        />
+      </div>
+    );
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       <style>{`
@@ -856,6 +981,98 @@ const InspectionApp = () => {
       {currentScreen === 'defects' && <DefectsScreen />}
       {currentScreen === 'inspectionCheck' && <InspectionCheckScreen />}
       {currentScreen === 'masterDefects' && <MasterDefectsScreen />}
+      {currentScreen === 'defectRegistry' && <DefectRegistryScreen />}
+      <Modal
+        title="Карточка дефекта"
+        open={defectModalVisible}
+        onCancel={() => {
+          setDefectModalVisible(false);
+          setSelectedDefect(null);
+        }}
+        footer={null}
+        width={700}
+      >
+        {selectedDefect && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Название дефекта:</div>
+              <div style={{ fontSize: '16px', fontWeight: '600' }}>{selectedDefect.name}</div>
+            </div>
+            
+            <div>
+              <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Объект:</div>
+              <div>ЛЭП-12</div>
+            </div>
+            
+            <div>
+              <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Техническое место:</div>
+              <div>{selectedDefect.techPlaceName}</div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <div>
+                <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Статус:</div>
+                <Tag color={selectedDefect.status === 'new' ? 'blue' : selectedDefect.status === 'repeat' ? 'orange' : selectedDefect.status === 'fixed' ? 'green' : 'default'}>
+                  {selectedDefect.status === 'new' ? 'Новый' : selectedDefect.status === 'repeat' ? 'Повторный' : selectedDefect.status === 'fixed' ? 'Устранен' : 'Не подтвержден'}
+                </Tag>
+              </div>
+              
+              <div>
+                <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Критичность:</div>
+                <Tag color={selectedDefect.severity === 'none' ? 'default' : selectedDefect.severity === 'low' ? 'gold' : selectedDefect.severity === 'medium' ? 'orange' : 'red'}>
+                  {selectedDefect.severity === 'none' ? 'Нет' : selectedDefect.severity === 'low' ? 'Низкий' : selectedDefect.severity === 'medium' ? 'Средний' : 'Высокий'}
+                </Tag>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <div>
+                <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Дата первого обнаружения:</div>
+                <div>{selectedDefect.date}</div>
+              </div>
+              
+              <div>
+                <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Дата последней актуализации:</div>
+                <div>{selectedDefect.lastUpdate || selectedDefect.date}</div>
+              </div>
+              
+              <div>
+                <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Дата устранения:</div>
+                <div>{selectedDefect.fixDate || '-'}</div>
+              </div>
+            </div>
+            
+            {selectedDefect.photos && selectedDefect.photos.length > 0 && (
+              <div>
+                <div style={{ fontWeight: '500', marginBottom: '8px', color: '#666' }}>Фотографии:</div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {selectedDefect.photos.map((photo, idx) => (
+                    <img 
+                      key={idx} 
+                      src={photo.url} 
+                      alt={`Фото ${idx + 1}`}
+                      style={{ 
+                        width: '100px', 
+                        height: '100px', 
+                        objectFit: 'cover',
+                        borderRadius: '4px',
+                        border: '1px solid #d9d9d9'
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div>
+              <div style={{ fontWeight: '500', marginBottom: '8px', color: '#666' }}>Ссылки на листы осмотра:</div>
+              <div style={{ color: '#1890ff', cursor: 'pointer' }}>
+                Лист осмотра от {selectedDefect.date}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };
