@@ -13,7 +13,9 @@ const InspectionApp = () => {
   const [showOnlyDefects, setShowOnlyDefects] = useState(false);
   const [defectModalVisible, setDefectModalVisible] = useState(false);
   const [selectedDefect, setSelectedDefect] = useState(null);
-  
+
+  const [techPlacePhotos, setTechPlacePhotos] = useState({});
+
   // Состояние осмотра
   const [inspectionCompleted, setInspectionCompleted] = useState(false); // Исполнитель завершил осмотр
   const [inspectionAccepted, setInspectionAccepted] = useState(false); // Мастер принял осмотр
@@ -70,6 +72,24 @@ const InspectionApp = () => {
 
   // Получение уникальных типов
   const uniqueTypes = ['all', ...new Set(techPlaces.map(tp => tp.type))];
+
+  // Handler for uploading photos to techPlace
+  const handleTechPlacePhotoUpload = (techPlaceId, file) => {
+    const newPhoto = { url: URL.createObjectURL(file), file };
+    setTechPlacePhotos(prev => ({
+      ...prev,
+      [techPlaceId]: [...(prev[techPlaceId] || []), newPhoto]
+    }));
+    return false; // Prevent default upload behavior
+  };
+
+  // Handler for deleting photo from techPlace
+  const handleTechPlacePhotoDelete = (techPlaceId, photoIndex) => {
+    setTechPlacePhotos(prev => ({
+      ...prev,
+      [techPlaceId]: prev[techPlaceId].filter((_, idx) => idx !== photoIndex)
+    }));
+  };
 
   // Обработчик загрузки фото
   const handlePhotoUpload = (defectId, file) => {
@@ -316,6 +336,19 @@ const InspectionApp = () => {
           const progress = getProgress(techPlace);
           const totalDefects = techPlace.stages.reduce((sum, s) => sum + s.defects.filter(d => d.severity !== 'none').length, 0);
           
+          // Get photos from tech place card level
+          const cardPhotos = techPlacePhotos[techPlace.id] || [];
+          
+          // Get photos from all defects in all stages
+          const defectPhotos = techPlace.stages.flatMap(stage => 
+            stage.defects.flatMap(defect => 
+              defect.photos.map(photo => ({ ...photo, defectName: defect.name, stageName: stage.name }))
+            )
+          );
+          
+          // Combine all photos
+          const allPhotos = [...cardPhotos, ...defectPhotos];
+          
           return (
             <Card
               key={techPlace.id}
@@ -356,6 +389,82 @@ const InspectionApp = () => {
                     strokeColor={status === 'has-defects' ? '#ff4d4f' : '#52c41a'}
                     showInfo={false}
                   />
+                </div>
+
+                {/* Photo attachment area - clicking here should NOT navigate */}
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ 
+                    marginTop: '8px',
+                    padding: '12px',
+                    backgroundColor: '#fafafa',
+                    borderRadius: '8px',
+                    border: '1px dashed #d9d9d9'
+                  }}
+                >
+                  <div style={{ marginBottom: '8px', fontSize: '14px', color: '#666', fontWeight: 500 }}>
+                    Фото объекта:
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {allPhotos.map((photo, idx) => (
+                      <div key={idx} style={{ position: 'relative' }}>
+                        <img 
+                          src={photo.url} 
+                          alt={`Фото ${idx + 1}`}
+                          style={{ 
+                            width: '80px', 
+                            height: '80px', 
+                            objectFit: 'cover',
+                            borderRadius: '4px',
+                            border: '1px solid #d9d9d9'
+                          }}
+                        />
+                        {idx < cardPhotos.length && (
+                          <Button
+                            type="text"
+                            danger
+                            size="small"
+                            onClick={() => handleTechPlacePhotoDelete(techPlace.id, idx)}
+                            style={{ 
+                              position: 'absolute', 
+                              top: '-8px', 
+                              right: '-8px',
+                              padding: '2px 6px',
+                              minWidth: 'auto',
+                              backgroundColor: '#fff',
+                              borderRadius: '50%'
+                            }}
+                          >
+                            ×
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Upload
+                      accept="image/*"
+                      showUploadList={false}
+                      beforeUpload={(file) => handleTechPlacePhotoUpload(techPlace.id, file)}
+                    >
+                      <div
+                        style={{
+                          width: '80px',
+                          height: '80px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '1px dashed #d9d9d9',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          backgroundColor: '#fff',
+                          color: '#666'
+                        }}
+                      >
+                        <PlusOutlined style={{ fontSize: '20px' }} />
+                        <span style={{ fontSize: '12px', marginTop: '4px' }}>Добавить</span>
+                      </div>
+                    </Upload>
+                  </div>
                 </div>
               </div>
             </Card>
@@ -715,6 +824,31 @@ const InspectionApp = () => {
                       </Tag>
                     </div>
                   </div>
+
+                  {/* Photos from tech place card level */}
+                  {techPlacePhotos[techPlace.id] && techPlacePhotos[techPlace.id].length > 0 && (
+                    <div style={{ marginTop: '8px' }}>
+                      <div style={{ marginBottom: '8px', fontSize: '14px', color: '#666', fontWeight: 500 }}>
+                        Фото объекта:
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {techPlacePhotos[techPlace.id].map((photo, idx) => (
+                          <img 
+                            key={idx} 
+                            src={photo.url} 
+                            alt={`Фото ${idx + 1}`}
+                            style={{ 
+                              width: '80px', 
+                              height: '80px', 
+                              objectFit: 'cover',
+                              borderRadius: '4px',
+                              border: '1px solid #d9d9d9'
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </Card>
             );
