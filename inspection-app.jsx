@@ -587,16 +587,13 @@ const InspectionApp = () => {
               type="primary"
               size="large"
               onClick={() => {
-                // Получаем все дефекты со всех тех.мест
+                // Получаем все дефекты со всех тех.мест (только с критичностью low, medium, high)
                 const allDefects = [];
                 techPlaces.forEach(techPlace => {
                   techPlace.stages.forEach(stage => {
                     stage.defects.forEach(defect => {
-                      const hasSeverity = defect.severity !== 'none';
-                      const hasPhotos = defect.photos && defect.photos.length > 0;
-                      const hasComment = defect.comment && defect.comment.trim() !== '';
-                      
-                      if (hasSeverity || hasPhotos || hasComment) {
+                      // Только дефекты со статусом низкий, средний или высокий
+                      if (defect.severity === 'low' || defect.severity === 'medium' || defect.severity === 'high') {
                         allDefects.push({
                           ...defect,
                           techPlaceId: techPlace.id,
