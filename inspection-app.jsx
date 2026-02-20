@@ -575,7 +575,7 @@ const InspectionApp = () => {
                     onChange={(value) => updateDefectSeverity(defect.id, value)}
                     block
                     options={[
-                      { label: 'Нет', value: 'none' },
+                      { label: 'Нет дефекта', value: 'none' },
                       { label: 'Низкий', value: 'low' },
                       { label: 'Средний', value: 'medium' },
                       { label: 'Высокий', value: 'high' },
@@ -1022,7 +1022,7 @@ const InspectionApp = () => {
                         value={currentSeverity}
                         onChange={(value) => handleSeverityChange(defect.id, value)}
                         options={[
-                          { label: 'Нет', value: 'none' },
+                          { label: 'Нет дефекта', value: 'none' },
                           { label: 'Низкий', value: 'low' },
                           { label: 'Средний', value: 'medium' },
                           { label: 'Высокий', value: 'high' },
@@ -1031,7 +1031,7 @@ const InspectionApp = () => {
                       />
                     ) : (
                       <Tag color={currentSeverity === 'none' ? 'default' : currentSeverity === 'low' ? 'gold' : currentSeverity === 'medium' ? 'orange' : 'red'}>
-                        {currentSeverity === 'none' ? 'Нет' : currentSeverity === 'low' ? 'Низкий' : currentSeverity === 'medium' ? 'Средний' : 'Высокий'}
+                        {currentSeverity === 'none' ? 'Нет дефекта' : currentSeverity === 'low' ? 'Низкий' : currentSeverity === 'medium' ? 'Средний' : 'Высокий'}
                       </Tag>
                     )}
                   </div>
@@ -1136,7 +1136,7 @@ const InspectionApp = () => {
         key: 'severity',
         render: (severity) => (
           <Tag color={severity === 'none' ? 'default' : severity === 'low' ? 'gold' : severity === 'medium' ? 'orange' : 'red'}>
-            {severity === 'none' ? 'Нет' : severity === 'low' ? 'Низкий' : severity === 'medium' ? 'Средний' : 'Высокий'}
+            {severity === 'none' ? 'Нет дефекта' : severity === 'low' ? 'Низкий' : severity === 'medium' ? 'Средний' : 'Высокий'}
           </Tag>
         )
       },
@@ -1233,7 +1233,7 @@ const InspectionApp = () => {
               <div>
                 <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Критичность:</div>
                 <Tag color={selectedDefect.severity === 'none' ? 'default' : selectedDefect.severity === 'low' ? 'gold' : selectedDefect.severity === 'medium' ? 'orange' : 'red'}>
-                  {selectedDefect.severity === 'none' ? 'Нет' : selectedDefect.severity === 'low' ? 'Низкий' : selectedDefect.severity === 'medium' ? 'Средний' : 'Высокий'}
+                  {selectedDefect.severity === 'none' ? 'Нет дефекта' : selectedDefect.severity === 'low' ? 'Низкий' : selectedDefect.severity === 'medium' ? 'Средний' : 'Высокий'}
                 </Tag>
               </div>
             </div>
