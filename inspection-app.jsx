@@ -630,7 +630,7 @@ const InspectionApp = () => {
               size="large"
               onClick={() => {
                 setInspectionCompleted(false);
-                setCurrentScreen('techPlaces');
+                setCurrentScreen('main');
               }}
               style={{ 
                 minWidth: '200px', 
