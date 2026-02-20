@@ -13,6 +13,11 @@ const InspectionApp = () => {
   const [showOnlyDefects, setShowOnlyDefects] = useState(false);
   const [defectModalVisible, setDefectModalVisible] = useState(false);
   const [selectedDefect, setSelectedDefect] = useState(null);
+  
+  // Состояние осмотра
+  const [inspectionCompleted, setInspectionCompleted] = useState(false); // Исполнитель завершил осмотр
+  const [inspectionAccepted, setInspectionAccepted] = useState(false); // Мастер принял осмотр
+  const [registeredDefects, setRegisteredDefects] = useState([]); // Реестр дефектов
 
   // Получение статуса тех.места
   const getTechPlaceStatus = (techPlace) => {
@@ -212,6 +217,7 @@ const InspectionApp = () => {
             type="primary" 
             size="large" 
             onClick={() => setCurrentScreen('techPlaces')}
+            disabled={inspectionCompleted || inspectionAccepted}
             style={{ minWidth: '200px', height: '50px', fontSize: '18px' }}
           >
             Заполнить
@@ -220,6 +226,7 @@ const InspectionApp = () => {
             type="default" 
             size="large" 
             onClick={() => setCurrentScreen('inspectionCheck')}
+            disabled={!inspectionCompleted || inspectionAccepted}
             style={{ minWidth: '200px', height: '50px', fontSize: '18px' }}
           >
             Проверка листа осмотра
@@ -249,6 +256,37 @@ const InspectionApp = () => {
       </Button>
       
       <h1 style={{ marginBottom: '24px' }}>Технические места</h1>
+      
+      {!inspectionCompleted && (
+        <Button
+          type="primary"
+          size="large"
+          onClick={() => {
+            setInspectionCompleted(true);
+            setCurrentScreen('main');
+          }}
+          style={{ 
+            minWidth: '200px', 
+            height: '50px', 
+            fontSize: '18px',
+            marginBottom: '24px'
+          }}
+        >
+          Завершить осмотр
+        </Button>
+      )}
+      
+      {inspectionCompleted && (
+        <div style={{ 
+          padding: '16px', 
+          backgroundColor: '#f6ffed', 
+          border: '1px solid #b7eb8f', 
+          borderRadius: '8px',
+          marginBottom: '24px'
+        }}>
+          <span style={{ color: '#52c41a', fontWeight: 500 }}>Осмотр завершен</span>
+        </div>
+      )}
       
       <div style={{ marginBottom: '24px', display: 'flex', gap: '16px' }}>
         <Input
@@ -542,6 +580,71 @@ const InspectionApp = () => {
         </Button>
         
         <h1 style={{ marginBottom: '24px' }}>Проверка листа осмотра</h1>
+        
+        {!inspectionAccepted && (
+          <div style={{ marginBottom: '24px', display: 'flex', gap: '16px' }}>
+            <Button
+              type="primary"
+              size="large"
+              onClick={() => {
+                // Получаем все дефекты со всех тех.мест
+                const allDefects = [];
+                techPlaces.forEach(techPlace => {
+                  techPlace.stages.forEach(stage => {
+                    stage.defects.forEach(defect => {
+                      const hasSeverity = defect.severity !== 'none';
+                      const hasPhotos = defect.photos && defect.photos.length > 0;
+                      const hasComment = defect.comment && defect.comment.trim() !== '';
+                      
+                      if (hasSeverity || hasPhotos || hasComment) {
+                        allDefects.push({
+                          ...defect,
+                          techPlaceId: techPlace.id,
+                          techPlaceName: techPlace.name,
+                          techPlaceType: techPlace.type,
+                          stageName: stage.name,
+                          stageId: stage.id,
+                          registeredDate: new Date().toISOString().split('T')[0]
+                        });
+                      }
+                    });
+                  });
+                });
+                
+                setRegisteredDefects(allDefects);
+                setInspectionAccepted(true);
+                setCurrentScreen('main');
+              }}
+              style={{ 
+                minWidth: '200px', 
+                height: '50px', 
+                fontSize: '18px',
+                backgroundColor: '#52c41a',
+                borderColor: '#52c41a'
+              }}
+            >
+              Принять осмотр
+            </Button>
+            <Button
+              type="default"
+              size="large"
+              onClick={() => {
+                setInspectionCompleted(false);
+                setCurrentScreen('techPlaces');
+              }}
+              style={{ 
+                minWidth: '200px', 
+                height: '50px', 
+                fontSize: '18px',
+                backgroundColor: '#faad14',
+                borderColor: '#faad14',
+                color: '#fff'
+              }}
+            >
+              Вернуть на доработку
+            </Button>
+          </div>
+        )}
 
         <div style={{ marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
           <Input
@@ -847,34 +950,9 @@ const InspectionApp = () => {
 
   // Экран реестра дефектов
   const DefectRegistryScreen = () => {
-    // Получение всех дефектов со всех тех.мест
-    const getAllDefects = () => {
-      const defects = [];
-      techPlaces.forEach(techPlace => {
-        techPlace.stages.forEach(stage => {
-          stage.defects.forEach(defect => {
-            // Дефекты с критичностью или с фото или с комментарием
-            const hasSeverity = defect.severity !== 'none';
-            const hasPhotos = defect.photos && defect.photos.length > 0;
-            const hasComment = defect.comment && defect.comment.trim() !== '';
-            
-            if (hasSeverity || hasPhotos || hasComment) {
-              defects.push({
-                ...defect,
-                techPlaceId: techPlace.id,
-                techPlaceName: techPlace.name,
-                techPlaceType: techPlace.type,
-                stageName: stage.name,
-                stageId: stage.id
-              });
-            }
-          });
-        });
-      });
-      return defects;
-    };
-
-    const allDefects = getAllDefects();
+    // Реестр дефектов - показываем только зарегистрированные дефекты
+    // После принятия осмотра мастером дефекты попадают в реестр
+    const allDefects = registeredDefects;
 
     // Таблица дефектов
     const columns = [
