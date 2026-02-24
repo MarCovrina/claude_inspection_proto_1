@@ -339,18 +339,8 @@ const InspectionApp = () => {
           const progress = getProgress(techPlace);
           const totalDefects = techPlace.stages.reduce((sum, s) => sum + s.defects.filter(d => d.severity !== 'none').length, 0);
           
-          // Get photos from tech place card level
-          const cardPhotos = techPlacePhotos[techPlace.id] || [];
-          
-          // Get photos from all defects in all stages
-          const defectPhotos = techPlace.stages.flatMap(stage => 
-            stage.defects.flatMap(defect => 
-              defect.photos.map(photo => ({ ...photo, defectName: defect.name, stageName: stage.name }))
-            )
-          );
-          
-          // Combine all photos
-          const allPhotos = [...cardPhotos, ...defectPhotos];
+          // Get photos from tech place card level only (not from defects)
+          const allPhotos = techPlacePhotos[techPlace.id] || [];
           
           return (
             <Card
