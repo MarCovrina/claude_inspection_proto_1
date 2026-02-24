@@ -1203,85 +1203,109 @@ const InspectionApp = () => {
           setSelectedDefect(null);
         }}
         footer={null}
-        width={700}
+        width={1000}
       >
         {selectedDefect && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
+              <div>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
+                  Дефект № {selectedDefect.id} — {selectedDefect.name}
+                </div>
+                <div style={{ color: '#4a5568', fontSize: '15px' }}>
+                  Объект: ЛЭП-12 | Техническое место: {selectedDefect.techPlaceName}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {selectedDefect.status === 'repeat' && (
+                  <div style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '14px', fontWeight: 'bold', color: '#fff', background: '#2b6cb0' }}>
+                    Повторный
+                  </div>
+                )}
+                <div style={{ 
+                  padding: '6px 12px', 
+                  borderRadius: '20px', 
+                  fontSize: '14px', 
+                  fontWeight: 'bold', 
+                  color: '#fff', 
+                  background: selectedDefect.severity === 'high' ? '#e53e3e' : selectedDefect.severity === 'medium' ? '#dd6b20' : selectedDefect.severity === 'low' ? '#38a169' : '#718096'
+                }}>
+                  Критичность: {selectedDefect.severity === 'high' ? 'Высокая' : selectedDefect.severity === 'medium' ? 'Средняя' : selectedDefect.severity === 'low' ? 'Низкая' : 'Нет дефекта'}
+                </div>
+              </div>
+            </div>
+
+            {/* Information Section */}
             <div>
-              <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Название дефекта:</div>
-              <div style={{ fontSize: '16px', fontWeight: '600' }}>{selectedDefect.name}</div>
-            </div>
-            
-            <div>
-              <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Объект:</div>
-              <div>ЛЭП-12</div>
-            </div>
-            
-            <div>
-              <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Техническое место:</div>
-              <div>{selectedDefect.techPlaceName}</div>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <div>
-                <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Статус:</div>
-                <Tag color={selectedDefect.status === 'new' ? 'blue' : selectedDefect.status === 'repeat' ? 'orange' : selectedDefect.status === 'fixed' ? 'green' : 'default'}>
-                  {selectedDefect.status === 'new' ? 'Новый' : selectedDefect.status === 'repeat' ? 'Повторный' : selectedDefect.status === 'fixed' ? 'Устранен' : 'Не подтвержден'}
-                </Tag>
-              </div>
-              
-              <div>
-                <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Критичность:</div>
-                <Tag color={selectedDefect.severity === 'none' ? 'default' : selectedDefect.severity === 'low' ? 'gold' : selectedDefect.severity === 'medium' ? 'orange' : 'red'}>
-                  {selectedDefect.severity === 'none' ? 'Нет дефекта' : selectedDefect.severity === 'low' ? 'Низкий' : selectedDefect.severity === 'medium' ? 'Средний' : 'Высокий'}
-                </Tag>
+              <h3 style={{ marginBottom: '15px', fontSize: '18px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>Информация о дефекте</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 40px', fontSize: '15px' }}>
+                <div><span style={{ color: '#718096' }}>Дата первого обнаружения:</span> {selectedDefect.date}</div>
+                <div><span style={{ color: '#718096' }}>Дата последней актуализации:</span> {selectedDefect.lastUpdate || selectedDefect.date}</div>
+                <div><span style={{ color: '#718096' }}>Дата устранения:</span> {selectedDefect.fixDate || '—'}</div>
+                <div><span style={{ color: '#718096' }}>Статус:</span> {selectedDefect.status === 'new' ? 'Подтвержден' : selectedDefect.status === 'repeat' ? 'Подтвержден' : selectedDefect.status === 'fixed' ? 'Устранен' : 'Не подтвержден'}</div>
               </div>
             </div>
-            
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <div>
-                <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Дата первого обнаружения:</div>
-                <div>{selectedDefect.date}</div>
-              </div>
-              
-              <div>
-                <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Дата последней актуализации:</div>
-                <div>{selectedDefect.lastUpdate || selectedDefect.date}</div>
-              </div>
-              
-              <div>
-                <div style={{ fontWeight: '500', marginBottom: '4px', color: '#666' }}>Дата устранения:</div>
-                <div>{selectedDefect.fixDate || '-'}</div>
-              </div>
-            </div>
-            
+
+            {/* Photos Section */}
             {selectedDefect.photos && selectedDefect.photos.length > 0 && (
               <div>
-                <div style={{ fontWeight: '500', marginBottom: '8px', color: '#666' }}>Фотографии:</div>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {selectedDefect.photos.map((photo, idx) => (
+                <h3 style={{ marginBottom: '15px', fontSize: '18px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>Фото дефекта</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px' }}>
+                  {selectedDefect.photos.slice(0, 3).map((photo, idx) => (
                     <img 
                       key={idx} 
                       src={photo.url} 
-                      alt={`Фото ${idx + 1}`}
+                      alt={idx === 0 ? 'Основное фото' : `Фото ${idx + 1}`}
                       style={{ 
-                        width: '100px', 
-                        height: '100px', 
+                        width: '100%', 
+                        borderRadius: '8px', 
                         objectFit: 'cover',
-                        borderRadius: '4px',
-                        border: '1px solid #d9d9d9'
+                        height: '180px',
+                        background: '#edf2f7'
                       }}
                     />
                   ))}
                 </div>
               </div>
             )}
-            
+
+            {/* Inspection Lists Section */}
             <div>
-              <div style={{ fontWeight: '500', marginBottom: '8px', color: '#666' }}>Ссылки на листы осмотра:</div>
-              <div style={{ color: '#1890ff', cursor: 'pointer' }}>
-                Лист осмотра от {selectedDefect.date}
-              </div>
+              <h3 style={{ marginBottom: '15px', fontSize: '18px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>Листы осмотра</h3>
+              <Table
+                dataSource={[
+                  {
+                    key: '1',
+                    number: selectedDefect.id + 500,
+                    date: selectedDefect.date,
+                    inspector: 'Иванов И.А.',
+                    severity: selectedDefect.severity,
+                    comment: selectedDefect.comment || selectedDefect.name
+                  }
+                ]}
+                columns={[
+                  { title: '№ Листа', dataIndex: 'number', key: 'number' },
+                  { title: 'Дата', dataIndex: 'date', key: 'date' },
+                  { title: 'Инспектор', dataIndex: 'inspector', key: 'inspector' },
+                  { 
+                    title: 'Критичность', 
+                    dataIndex: 'severity', 
+                    key: 'severity',
+                    render: (severity) => (
+                      <span style={{ 
+                        color: severity === 'high' ? '#e53e3e' : severity === 'medium' ? '#dd6b20' : severity === 'low' ? '#38a169' : '#718096',
+                        fontWeight: severity !== 'none' ? 'bold' : 'normal'
+                      }}>
+                        {severity === 'high' ? 'Высокая' : severity === 'medium' ? 'Средняя' : severity === 'low' ? 'Низкая' : 'Нет дефекта'}
+                      </span>
+                    )
+                  },
+                  { title: 'Комментарий', dataIndex: 'comment', key: 'comment' }
+                ]}
+                pagination={false}
+                size="small"
+              />
             </div>
           </div>
         )}
