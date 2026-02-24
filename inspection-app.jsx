@@ -75,10 +75,11 @@ const InspectionApp = () => {
 
   // Handler for uploading photos to techPlace
   const handleTechPlacePhotoUpload = (techPlaceId, file) => {
-    const newPhoto = { url: URL.createObjectURL(file), file };
+    const files = Array.isArray(file) ? file : [file];
+    const newPhotos = files.map(f => ({ url: URL.createObjectURL(f), file: f }));
     setTechPlacePhotos(prev => ({
       ...prev,
-      [techPlaceId]: [...(prev[techPlaceId] || []), newPhoto]
+      [techPlaceId]: [...(prev[techPlaceId] || []), ...newPhotos]
     }));
     return false; // Prevent default upload behavior
   };
@@ -93,6 +94,7 @@ const InspectionApp = () => {
 
   // Обработчик загрузки фото
   const handlePhotoUpload = (defectId, file) => {
+    const files = Array.isArray(file) ? file : [file];
     const updatedTechPlaces = techPlaces.map(tp => {
       if (tp.id === selectedTechPlace.id) {
         return {
@@ -103,9 +105,10 @@ const InspectionApp = () => {
                 ...stage,
                 defects: stage.defects.map(defect => {
                   if (defect.id === defectId) {
+                    const newPhotos = files.map(f => ({ url: URL.createObjectURL(f), file: f }));
                     return {
                       ...defect,
-                      photos: [...defect.photos, { url: URL.createObjectURL(file), file }]
+                      photos: [...defect.photos, ...newPhotos]
                     };
                   }
                   return defect;
@@ -442,6 +445,7 @@ const InspectionApp = () => {
                     ))}
                     <Upload
                       accept="image/*"
+                      multiple
                       showUploadList={false}
                       beforeUpload={(file) => handleTechPlacePhotoUpload(techPlace.id, file)}
                     >
@@ -588,6 +592,7 @@ const InspectionApp = () => {
                   <div style={{ marginBottom: '8px', fontWeight: '500' }}>Фото:</div>
                   <Upload
                     listType="picture-card"
+                    multiple
                     fileList={defect.photos.map((photo, idx) => ({
                       uid: idx,
                       name: `photo-${idx}`,
@@ -1083,7 +1088,41 @@ const InspectionApp = () => {
   const DefectRegistryScreen = () => {
     // Реестр дефектов - показываем только зарегистрированные дефекты
     // После принятия осмотра мастером дефекты попадают в реестр
-    const allDefects = registeredDefects;
+    const [registrySearchText, setRegistrySearchText] = useState('');
+    const [registryFilterType, setRegistryFilterType] = useState(null);
+    const [registryFilterSeverity, setRegistryFilterSeverity] = useState(null);
+    const [registryFilterDateFrom, setRegistryFilterDateFrom] = useState(null);
+    const [registryFilterDateTo, setRegistryFilterDateTo] = useState(null);
+
+    // Фильтрация дефектов
+    const filteredDefects = registeredDefects.filter(defect => {
+      // Поиск по наименованию, объекту, тех.месту
+      if (registrySearchText) {
+        const searchLower = registrySearchText.toLowerCase();
+        const matchesName = defect.name?.toLowerCase().includes(searchLower);
+        const matchesObject = 'ЛЭП-12'.toLowerCase().includes(searchLower);
+        const matchesTechPlace = defect.techPlaceName?.toLowerCase().includes(searchLower);
+        if (!matchesName && !matchesObject && !matchesTechPlace) return false;
+      }
+      // Фильтр по типу тех.места
+      if (registryFilterType && defect.techPlaceType !== registryFilterType) {
+        return false;
+      }
+      // Фильтр по критичности
+      if (registryFilterSeverity && defect.severity !== registryFilterSeverity) {
+        return false;
+      }
+      // Фильтр по дате обнаружения
+      if (registryFilterDateFrom || registryFilterDateTo) {
+        const defectDate = new Date(defect.date);
+        if (registryFilterDateFrom && defectDate < new Date(registryFilterDateFrom)) return false;
+        if (registryFilterDateTo && defectDate > new Date(registryFilterDateTo)) return false;
+      }
+      return true;
+    });
+
+    // Уникальные типы тех.мест для фильтра
+    const uniqueTechPlaceTypes = [...new Set(registeredDefects.map(d => d.techPlaceType).filter(Boolean))];
 
     // Таблица дефектов
     const columns = [
@@ -1121,16 +1160,6 @@ const InspectionApp = () => {
         render: (type) => <Tag color="blue">{type}</Tag>
       },
       {
-        title: 'Статус',
-        dataIndex: 'status',
-        key: 'status',
-        render: (status) => (
-          <Tag color={status === 'new' ? 'blue' : status === 'repeat' ? 'orange' : status === 'fixed' ? 'green' : 'default'}>
-            {status === 'new' ? 'Новый' : status === 'repeat' ? 'Повторный' : status === 'fixed' ? 'Устранен' : 'Не подтвержден'}
-          </Tag>
-        )
-      },
-      {
         title: 'Критичность',
         dataIndex: 'severity',
         key: 'severity',
@@ -1159,9 +1188,56 @@ const InspectionApp = () => {
         
         <h1 style={{ marginBottom: '24px' }}>Реестр дефектов</h1>
 
+        {/* Фильтры и поиск */}
+        <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <Input
+            placeholder="Поиск по наименованию, объекту, тех.месту..."
+            value={registrySearchText}
+            onChange={(e) => setRegistrySearchText(e.target.value)}
+            style={{ width: '300px' }}
+            prefix={<SearchOutlined />}
+            allowClear
+          />
+          <Select
+            placeholder="Тип тех.места"
+            value={registryFilterType}
+            onChange={setRegistryFilterType}
+            style={{ width: '180px' }}
+            allowClear
+            options={uniqueTechPlaceTypes.map(type => ({ value: type, label: type }))}
+          />
+          <Select
+            placeholder="Критичность"
+            value={registryFilterSeverity}
+            onChange={setRegistryFilterSeverity}
+            style={{ width: '150px' }}
+            allowClear
+            options={[
+              { value: 'high', label: 'Высокая' },
+              { value: 'medium', label: 'Средняя' },
+              { value: 'low', label: 'Низкая' }
+            ]}
+          />
+          <Input
+            type="date"
+            placeholder="Дата с"
+            value={registryFilterDateFrom}
+            onChange={(e) => setRegistryFilterDateFrom(e.target.value)}
+            style={{ width: '150px' }}
+          />
+          <span style={{ color: '#666' }}>—</span>
+          <Input
+            type="date"
+            placeholder="Дата по"
+            value={registryFilterDateTo}
+            onChange={(e) => setRegistryFilterDateTo(e.target.value)}
+            style={{ width: '150px' }}
+          />
+        </div>
+
         <Table 
           columns={columns} 
-          dataSource={allDefects} 
+          dataSource={filteredDefects} 
           rowKey="id"
           pagination={{ pageSize: 10 }}
         />
@@ -1210,8 +1286,8 @@ const InspectionApp = () => {
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
               <div>
-                <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '8px' }}>
-                  Дефект № {selectedDefect.id} — {selectedDefect.name}
+                <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>
+                  {selectedDefect.name}
                 </div>
                 <div style={{ color: '#4a5568', fontSize: '15px' }}>
                   Объект: ЛЭП-12 | Техническое место: {selectedDefect.techPlaceName}
@@ -1239,30 +1315,29 @@ const InspectionApp = () => {
             {/* Information Section */}
             <div>
               {/* <h3 style={{ marginBottom: '15px', fontSize: '18px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>Информация о дефекте</h3> */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 40px', fontSize: '15px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '15px' }}>
                 <div><span style={{ color: '#718096' }}>Дата первого обнаружения:</span> {selectedDefect.date}</div>
                 <div><span style={{ color: '#718096' }}>Дата последней актуализации:</span> {selectedDefect.lastUpdate || selectedDefect.date}</div>
                 <div><span style={{ color: '#718096' }}>Дата устранения:</span> {selectedDefect.fixDate || '—'}</div>
-                <div><span style={{ color: '#718096' }}>Статус:</span> {selectedDefect.status === 'new' ? 'Подтвержден' : selectedDefect.status === 'repeat' ? 'Подтвержден' : selectedDefect.status === 'fixed' ? 'Устранен' : 'Не подтвержден'}</div>
               </div>
             </div>
 
             {/* Photos Section */}
             {selectedDefect.photos && selectedDefect.photos.length > 0 && (
               <div>
-                <h3 style={{ marginBottom: '15px', fontSize: '18px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>Фото дефекта</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '10px' }}>
-                  {selectedDefect.photos.slice(0, 3).map((photo, idx) => (
+                <div style={{ marginBottom: '8px', fontWeight: '500' }}>Фотографии:</div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {selectedDefect.photos.map((photo, idx) => (
                     <img 
                       key={idx} 
                       src={photo.url} 
-                      alt={idx === 0 ? 'Основное фото' : `Фото ${idx + 1}`}
+                      alt={`Фото ${idx + 1}`}
                       style={{ 
-                        width: '100%', 
-                        borderRadius: '8px', 
+                        width: '100px', 
+                        height: '100px', 
                         objectFit: 'cover',
-                        height: '180px',
-                        background: '#edf2f7'
+                        borderRadius: '4px',
+                        border: '1px solid #d9d9d9'
                       }}
                     />
                   ))}
