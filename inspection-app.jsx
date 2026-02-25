@@ -1109,7 +1109,9 @@ const InspectionApp = () => {
                   К списку этапов
                 </Button>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {selectedStageForDefect.defects.map(defect => (
+                  {selectedStageForDefect.defects
+                    .filter(defect => defect.severity === 'none')
+                    .map(defect => (
                     <Card
                       key={defect.id}
                       style={{ 
