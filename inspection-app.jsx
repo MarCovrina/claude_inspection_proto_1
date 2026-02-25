@@ -857,6 +857,8 @@ const InspectionApp = () => {
   const MasterDefectsScreen = () => {
     const [editingDefectId, setEditingDefectId] = useState(null);
     const [tempSeverity, setTempSeverity] = useState({});
+    const [addDefectModalVisible, setAddDefectModalVisible] = useState(false);
+    const [selectedStageForDefect, setSelectedStageForDefect] = useState(null);
 
     // Получение всех дефектов для выбранного тех.места
     const getAllDefects = () => {
@@ -970,6 +972,21 @@ const InspectionApp = () => {
         <h1 style={{ marginBottom: '24px' }}>{selectedTechPlace.name}</h1>
         <p style={{ marginBottom: '24px', color: '#666' }}>Дефекты для проверки мастером</p>
 
+        <Button 
+          type="primary"
+          size="large"
+          icon={<PlusOutlined />}
+          onClick={() => setAddDefectModalVisible(true)}
+          style={{ 
+            minWidth: '220px', 
+            height: '56px', 
+            fontSize: '18px',
+            marginBottom: '24px'
+          }}
+        >
+          Добавить дефект
+        </Button>
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {defects.map(defect => {
             const isEditing = editingDefectId === defect.id;
@@ -1070,6 +1087,135 @@ const InspectionApp = () => {
             </div>
           )}
         </div>
+
+        <Modal
+          title={selectedStageForDefect ? `Дефекты: ${selectedStageForDefect.name}` : 'Выберите этап осмотра'}
+          open={addDefectModalVisible}
+          onCancel={() => {
+            setAddDefectModalVisible(false);
+            setSelectedStageForDefect(null);
+          }}
+          footer={null}
+          width={700}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+            {selectedStageForDefect ? (
+              <>
+                <Button 
+                  onClick={() => setSelectedStageForDefect(null)}
+                  style={{ marginBottom: '8px', alignSelf: 'flex-start' }}
+                  icon={<ArrowLeftOutlined />}
+                >
+                  К списку этапов
+                </Button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {selectedStageForDefect.defects.map(defect => (
+                    <Card
+                      key={defect.id}
+                      style={{ 
+                        borderLeft: `4px solid ${
+                          defect.severity === 'none' ? '#d9d9d9' : 
+                          defect.severity === 'low' ? '#d4b106' : 
+                          defect.severity === 'medium' ? '#d46b08' : '#cf1322'
+                        }`
+                      }}
+                      bodyStyle={{ padding: '16px' }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '16px', fontWeight: '500' }}>{defect.name}</span>
+                        </div>
+                        
+                        <div>
+                          <span style={{ color: '#666', fontSize: '14px', marginRight: '12px' }}>Критичность: </span>
+                          <Segmented
+                            value={defect.severity}
+                            onChange={(value) => {
+                              // Update defect severity
+                              const updatedTechPlaces = techPlaces.map(tp => {
+                                if (tp.id === selectedTechPlace.id) {
+                                  return {
+                                    ...tp,
+                                    stages: tp.stages.map(stage => {
+                                      if (stage.id === selectedStageForDefect.id) {
+                                        return {
+                                          ...stage,
+                                          defects: stage.defects.map(d => 
+                                            d.id === defect.id ? { ...d, severity: value } : d
+                                          )
+                                        };
+                                      }
+                                      return stage;
+                                    })
+                                  };
+                                }
+                                return tp;
+                              });
+                              setTechPlaces(updatedTechPlaces);
+                              const updatedTechPlace = updatedTechPlaces.find(tp => tp.id === selectedTechPlace.id);
+                              setSelectedTechPlace(updatedTechPlace);
+                              // Update the selected stage in local state
+                              const updatedStage = updatedTechPlace.stages.find(s => s.id === selectedStageForDefect.id);
+                              setSelectedStageForDefect(updatedStage);
+                            }}
+                            options={[
+                              { label: 'Нет дефекта', value: 'none' },
+                              { label: 'Низкий', value: 'low' },
+                              { label: 'Средний', value: 'medium' },
+                              { label: 'Высокий', value: 'high' },
+                            ]}
+                          />
+                        </div>
+                        
+                        {defect.photos && defect.photos.length > 0 && (
+                          <div>
+                            <div style={{ marginBottom: '8px', fontWeight: '500', fontSize: '14px' }}>Фотографии:</div>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                              {defect.photos.map((photo, idx) => (
+                                <img 
+                                  key={idx} 
+                                  src={photo.url} 
+                                  alt={`Фото ${idx + 1}`}
+                                  style={{ 
+                                    width: '80px', 
+                                    height: '80px', 
+                                    objectFit: 'cover',
+                                    borderRadius: '4px',
+                                    border: '1px solid #d9d9d9'
+                                  }} 
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </>
+            ) : (
+              selectedTechPlace.stages.map(stage => (
+                <Card
+                  key={stage.id}
+                  hoverable
+                  onClick={() => setSelectedStageForDefect(stage)}
+                  style={{ 
+                    cursor: 'pointer',
+                    border: selectedStageForDefect?.id === stage.id ? '2px solid #1890ff' : '1px solid #d9d9d9'
+                  }}
+                  bodyStyle={{ padding: '16px' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '16px', fontWeight: '500' }}>{stage.name}</span>
+                    <Tag color={stage.inspected ? 'green' : 'default'}>
+                      {stage.inspected ? 'Осмотрен' : 'Не осмотрен'}
+                    </Tag>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </Modal>
       </div>
     );
   };
