@@ -815,7 +815,7 @@ const InspectionApp = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{techPlace.name}</h3>
-                      {isNotInspected && <Tag color="default">не осмотрено</Tag>}
+                      {isNotInspected && <Tag color="default">Не осмотрено</Tag>}
                     </div>
                     <Tag color="blue">{techPlace.type}</Tag>
                   </div>
