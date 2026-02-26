@@ -1461,9 +1461,9 @@ const InspectionApp = () => {
             </div>
 
             {/* Photos Section */}
-            {selectedDefect.photos && selectedDefect.photos.length > 0 && (
-              <div>
-                <div style={{ marginBottom: '8px', fontWeight: '500' }}>Фотографии:</div>
+            <div>
+              <div style={{ marginBottom: '8px', fontWeight: '500' }}>Фотографии:</div>
+              {selectedDefect.photos && selectedDefect.photos.length > 0 ? (
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   {selectedDefect.photos.map((photo, idx) => (
                     <img 
@@ -1480,8 +1480,22 @@ const InspectionApp = () => {
                     />
                   ))}
                 </div>
-              </div>
-            )}
+              ) : (
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  padding: '20px',
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: '4px',
+                  border: '1px dashed #d9d9d9'
+                }}>
+                  <div style={{ fontSize: '32px', color: '#d9d9d9', marginBottom: '8px' }}>📷</div>
+                  <div style={{ color: '#718096', fontStyle: 'italic' }}>Нет фото</div>
+                </div>
+              )}
+            </div>
 
             {/* Inspection Lists Section */}
             <div>
