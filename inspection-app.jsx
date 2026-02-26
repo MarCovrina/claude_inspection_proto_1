@@ -664,10 +664,17 @@ const InspectionApp = () => {
         matchesDefectFilter = totalDefects === 0;
       }
       
-      // Исключаем тех.места с 0 осмотренных этапов
+      // Проверяем, есть ли хотя бы один осмотренный этап
       const hasInspectedStages = tp.stages.some(stage => stage.inspected);
       
-      return matchesSearch && matchesType && matchesDefectFilter && hasInspectedStages;
+      // Если фильтр "нет дефектов" - показываем только осмотренные тех.места без дефектов
+      // Если фильтр "есть дефекты" - показываем все с дефектами (включая неосмотренные)
+      // Если фильтр "все" - показываем все тех.места
+      if (defectFilter === 'no-defects') {
+        return matchesSearch && matchesType && matchesDefectFilter && hasInspectedStages;
+      }
+      
+      return matchesSearch && matchesType && matchesDefectFilter;
     });
 
     // Получение уникальных типов
@@ -782,43 +789,54 @@ const InspectionApp = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {filteredTechPlaces.map(techPlace => {
             const { newDefects, totalDefects } = getTechPlaceDefects(techPlace);
+            const hasInspectedStages = techPlace.stages.some(stage => stage.inspected);
+            const isNotInspected = !hasInspectedStages;
             
             return (
               <Card
                 key={techPlace.id}
-                hoverable
+                hoverable={!isNotInspected}
                 onClick={() => {
-                  setSelectedTechPlace(techPlace);
-                  setCurrentScreen('masterDefects');
+                  if (!isNotInspected) {
+                    setSelectedTechPlace(techPlace);
+                    setCurrentScreen('masterDefects');
+                  }
                 }}
                 style={{ 
                   borderRadius: '8px',
-                  borderLeft: totalDefects > 0 ? '6px solid #ff4d4f' : '6px solid #52c41a',
-                  cursor: 'pointer'
+                  borderLeft: isNotInspected ? '6px solid #d9d9d9' : (totalDefects > 0 ? '6px solid #ff4d4f' : '6px solid #52c41a'),
+                  cursor: isNotInspected ? 'default' : 'pointer',
+                  opacity: isNotInspected ? 0.7 : 1,
+                  backgroundColor: isNotInspected ? '#fafafa' : '#fff'
                 }}
                 bodyStyle={{ padding: '20px 24px' }}
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{techPlace.name}</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{techPlace.name}</h3>
+                      {isNotInspected && <Tag color="default">не осмотрено</Tag>}
+                    </div>
                     <Tag color="blue">{techPlace.type}</Tag>
                   </div>
                   
-                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                    <div>
-                      <span style={{ color: '#666', fontSize: '14px' }}>Новые дефекты: </span>
-                      <Tag color={newDefects > 0 ? 'red' : 'green'}>
-                        {newDefects}
-                      </Tag>
+                  {!isNotInspected && (
+                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                      <div>
+                        <span style={{ color: '#666', fontSize: '14px' }}>Новые дефекты: </span>
+                        <Tag color={newDefects > 0 ? 'red' : 'green'}>
+                          {newDefects}
+                        </Tag>
+                      </div>
+                      
+                      <div>
+                        <span style={{ color: '#666', fontSize: '14px' }}>Всего дефектов: </span>
+                        <Tag color={totalDefects > 0 ? 'orange' : 'default'}>
+                          {totalDefects}
+                        </Tag>
+                      </div>
                     </div>
-                    
-                    <div>
-                      <span style={{ color: '#666', fontSize: '14px' }}>Всего дефектов: </span>
-                      <Tag color={totalDefects > 0 ? 'orange' : 'default'}>
-                        {totalDefects}
-                      </Tag>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Photos from tech place card level */}
                   {techPlacePhotos[techPlace.id] && techPlacePhotos[techPlace.id].length > 0 && (
