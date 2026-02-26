@@ -1491,16 +1491,24 @@ const InspectionApp = () => {
                   {
                     key: '1',
                     number: selectedDefect.id + 500,
-                    date: selectedDefect.date,
-                    inspector: 'Иванов И.А.',
-                    severity: selectedDefect.severity,
-                    comment: selectedDefect.comment || selectedDefect.name
+                    detectionDate: selectedDefect.date,
+                    agreementDate: '25.02.2026',
+                    approvedBy: 'Иванов И.А.',
+                    severity: selectedDefect.severity
                   }
                 ]}
                 columns={[
-                  { title: '№ Листа', dataIndex: 'number', key: 'number' },
-                  { title: 'Дата', dataIndex: 'date', key: 'date' },
-                  { title: 'Инспектор', dataIndex: 'inspector', key: 'inspector' },
+                  { 
+                    title: '№ Листа', 
+                    dataIndex: 'number', 
+                    key: 'number',
+                    render: (text) => (
+                      <a href="#" onClick={(e) => { e.preventDefault(); console.log('Navigate to sheet ' + text); }}>{text}</a>
+                    )
+                  },
+                  { title: 'Дата обнаружения', dataIndex: 'detectionDate', key: 'detectionDate' },
+                  { title: 'Дата согласования', dataIndex: 'agreementDate', key: 'agreementDate' },
+                  { title: 'Согласовал', dataIndex: 'approvedBy', key: 'approvedBy' },
                   { 
                     title: 'Критичность', 
                     dataIndex: 'severity', 
@@ -1513,8 +1521,7 @@ const InspectionApp = () => {
                         {severity === 'high' ? 'Высокая' : severity === 'medium' ? 'Средняя' : severity === 'low' ? 'Низкая' : 'Нет дефекта'}
                       </span>
                     )
-                  },
-                  { title: 'Комментарий', dataIndex: 'comment', key: 'comment' }
+                  }
                 ]}
                 pagination={false}
                 size="small"
