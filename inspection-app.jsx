@@ -25,6 +25,10 @@ const InspectionApp = () => {
   // Хранилище назначенных мероприятий: { defectId: measureId }
   const [defectMeasures, setDefectMeasures] = useState({});
 
+  // Хранилище групп дефектов с общим мероприятием: { groupId: { defectIds: [], measureId: number } }
+  const [defectGroups, setDefectGroups] = useState({});
+  const nextGroupIdRef = React.useRef(1);
+
   // Получить мероприятие по ID
   const getMeasureById = (measureId) => {
     return remediationMeasures.find(m => m.id === measureId);
@@ -900,10 +904,6 @@ const InspectionApp = () => {
     const [selectAll, setSelectAll] = useState(false);
     const [groupMeasureModalVisible, setGroupMeasureModalVisible] = useState(false);
     const [groupSelectedMeasureId, setGroupSelectedMeasureId] = useState(null);
-    
-    // Хранилище групп дефектов с общим мероприятием: { groupId: { defectIds: [], measureId: number } }
-    const [defectGroups, setDefectGroups] = useState({});
-    let nextGroupId = 1;
 
     // Получение всех дефектов для выбранного тех.места
     // Включает дефекты с критичностью != 'none' И дефекты с критичностью 'none', но с комментарием или фото
@@ -1092,7 +1092,7 @@ const InspectionApp = () => {
 
     const saveGroupMeasureSelection = () => {
       if (selectedDefectIds.length >= 2 && groupSelectedMeasureId) {
-        const groupId = nextGroupId++;
+        const groupId = nextGroupIdRef.current++;
         setDefectGroups(prev => ({
           ...prev,
           [groupId]: {
