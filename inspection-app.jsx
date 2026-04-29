@@ -13,6 +13,7 @@ const InspectionApp = () => {
   const [showOnlyDefects, setShowOnlyDefects] = useState(false);
   const [defectModalVisible, setDefectModalVisible] = useState(false);
   const [selectedDefect, setSelectedDefect] = useState(null);
+  const [showInspectionViewInModal, setShowInspectionViewInModal] = useState(false);
 
   const [techPlacePhotos, setTechPlacePhotos] = useState({});
 
@@ -20,6 +21,14 @@ const InspectionApp = () => {
   const [inspectionCompleted, setInspectionCompleted] = useState(false); // Исполнитель завершил осмотр
   const [inspectionAccepted, setInspectionAccepted] = useState(false); // Мастер принял осмотр
   const [registeredDefects, setRegisteredDefects] = useState([]); // Реестр дефектов
+
+  // Хранилище назначенных мероприятий: { defectId: measureId }
+  const [defectMeasures, setDefectMeasures] = useState({});
+
+  // Получить мероприятие по ID
+  const getMeasureById = (measureId) => {
+    return remediationMeasures.find(m => m.id === measureId);
+  };
 
   // Получение статуса тех.места
   const getTechPlaceStatus = (techPlace) => {
@@ -884,8 +893,7 @@ const InspectionApp = () => {
     const [selectedMeasureId, setSelectedMeasureId] = useState(null);
     const [applyToAll, setApplyToAll] = useState(false);
     
-    // Хранилище назначенных мероприятий: { defectId: measureId }
-    const [defectMeasures, setDefectMeasures] = useState({});
+  // Хранилище назначенных мероприятий: { defectId: measureId } - moved to top level
     
     // Состояние для группового выбора мероприятий
     const [selectedDefectIds, setSelectedDefectIds] = useState([]);
@@ -1051,11 +1059,6 @@ const InspectionApp = () => {
       });
     };
 
-    // Получить мероприятие по ID
-    const getMeasureById = (measureId) => {
-      return remediationMeasures.find(m => m.id === measureId);
-    };
-
     // Обработчики для группового выбора
     const toggleDefectSelection = (defectId) => {
       setSelectedDefectIds(prev => {
@@ -1071,7 +1074,8 @@ const InspectionApp = () => {
         setSelectedDefectIds([]);
         setSelectAll(false);
       } else {
-        setSelectedDefectIds(defects.map(d => d.id));
+        // Select only defects that can be selected (severity !== 'none')
+        setSelectedDefectIds(defects.filter(d => d.severity !== 'none').map(d => d.id));
         setSelectAll(true);
       }
     };
@@ -1263,15 +1267,27 @@ const InspectionApp = () => {
                       border: 'none',
                       borderBottom: idx < groupDefects.length - 1 ? '1px solid #d9d9d9' : 'none',
                       borderRadius: 0,
-                      backgroundColor: '#fff'
+                      backgroundColor: '#fff',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
                     }}
                     bodyStyle={{ padding: '16px 20px' }}
+                    hoverable
+                    onClick={() => {
+                      // Open modal with inspection-style view for grouped defects
+                      setSelectedDefect(defect);
+                      setShowInspectionViewInModal(true);
+                      setDefectModalVisible(true);
+                    }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>{defect.name}</h3>
                       <Button 
                         size="small" 
-                        onClick={() => ungroupDefect(groupId, defect.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          ungroupDefect(groupId, defect.id);
+                        }}
                       >
                         Удалить из группы
                       </Button>
@@ -1313,6 +1329,7 @@ const InspectionApp = () => {
             const isEditing = editingDefectId === defect.id;
             const currentSeverity = getCurrentSeverity(defect);
             const isSelected = selectedDefectIds.includes(defect.id);
+            const canSelect = defect.canAssignMeasure !== false && defect.severity !== 'none';
             
             return (
             <Card
@@ -1321,14 +1338,15 @@ const InspectionApp = () => {
                 borderRadius: '8px',
                 borderLeft: `4px solid ${getSeverityColor(currentSeverity)}`,
                 backgroundColor: isSelected ? '#e6f7ff' : (isEditing ? '#f5f5f5' : '#fff'),
-                border: isSelected ? '2px solid #1890ff' : undefined
+                border: isSelected ? '2px solid #1890ff' : undefined,
+                opacity: !canSelect ? 0.6 : 1
               }}
               bodyStyle={{ padding: '20px 24px' }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {defect.canAssignMeasure !== false && (
+                    {canSelect && (
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -2004,18 +2022,92 @@ const InspectionApp = () => {
       {currentScreen === 'masterDefects' && <MasterDefectsScreen />}
       {currentScreen === 'defectRegistry' && <DefectRegistryScreen />}
       <Modal
-        title="Карточка дефекта"
+        title={showInspectionViewInModal ? "Информация о дефекте" : "Карточка дефекта"}
         open={defectModalVisible}
         onCancel={() => {
           setDefectModalVisible(false);
           setSelectedDefect(null);
+          setShowInspectionViewInModal(false);
         }}
         footer={null}
-        width={1000}
+        width={showInspectionViewInModal ? 700 : 1000}
       >
-        {selectedDefect && (
+        {selectedDefect && showInspectionViewInModal && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{selectedDefect.name}</h3>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <Tag color={selectedDefect.status === 'new' ? 'blue' : selectedDefect.status === 'repeat' ? 'orange' : 'default'}>
+                  {selectedDefect.status === 'new' ? 'Новый' : selectedDefect.status === 'repeat' ? 'Повтор' : 'Не подтвержден'}
+                </Tag>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div>
+                <span style={{ color: '#666', fontSize: '14px' }}>Дата обнаружения: </span>
+                <span style={{ fontWeight: '500' }}>{selectedDefect.date}</span>
+              </div>
+              
+              <div>
+                <span style={{ color: '#666', fontSize: '14px' }}>Критичность: </span>
+                <Tag color={selectedDefect.severity === 'none' ? 'default' : selectedDefect.severity === 'low' ? 'gold' : selectedDefect.severity === 'medium' ? 'orange' : 'red'}>
+                  {selectedDefect.severity === 'none' ? 'Нет дефекта' : selectedDefect.severity === 'low' ? 'Низкий' : selectedDefect.severity === 'medium' ? 'Средний' : 'Высокий'}
+                </Tag>
+              </div>
+            </div>
+
+            {selectedDefect.photos && selectedDefect.photos.length > 0 && (
+              <div>
+                <div style={{ marginBottom: '8px', fontWeight: '500' }}>Фотографии:</div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {selectedDefect.photos.map((photo, idx) => (
+                    <img 
+                      key={idx} 
+                      src={photo.url} 
+                      alt={`Фото ${idx + 1}`}
+                      style={{ 
+                        width: '100px', 
+                        height: '100px', 
+                        objectFit: 'cover',
+                        borderRadius: '4px',
+                        border: '1px solid #d9d9d9'
+                      }} 
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {selectedDefect.comment && (
+              <div>
+                <span style={{ color: '#666', fontSize: '14px' }}>Комментарий: </span>
+                <span>{selectedDefect.comment}</span>
+              </div>
+            )}
+
+            {defectMeasures[selectedDefect.id] && (
+              <div style={{ 
+                marginTop: '8px', 
+                paddingTop: '12px', 
+                borderTop: '1px solid #f0f0f0',
+                backgroundColor: '#f6ffed',
+                margin: '8px -24px -16px',
+                padding: '16px 24px',
+                borderRadius: '0 0 8px 8px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{ fontWeight: '500', fontSize: '14px' }}>Мероприятие:</span>
+                  <Tag color="green" style={{ padding: '4px 12px' }}>
+                    {getMeasureById(defectMeasures[selectedDefect.id])?.name}
+                  </Tag>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+        {selectedDefect && !showInspectionViewInModal && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>
@@ -2044,9 +2136,7 @@ const InspectionApp = () => {
               </div>
             </div>
 
-            {/* Information Section */}
             <div>
-              {/* <h3 style={{ marginBottom: '15px', fontSize: '18px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>Информация о дефекте</h3> */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '15px' }}>
                 <div><span style={{ color: '#718096' }}>Дата первого обнаружения:</span> {selectedDefect.date}</div>
                 <div><span style={{ color: '#718096' }}>Дата последней актуализации:</span> {selectedDefect.lastUpdate || selectedDefect.date}</div>
@@ -2054,7 +2144,6 @@ const InspectionApp = () => {
               </div>
             </div>
 
-            {/* Photos Section */}
             <div>
               <div style={{ marginBottom: '8px', fontWeight: '500' }}>Фотографии:</div>
               {selectedDefect.photos && selectedDefect.photos.length > 0 ? (
@@ -2091,7 +2180,6 @@ const InspectionApp = () => {
               )}
             </div>
 
-            {/* Inspection Lists Section */}
             <div>
               <h3 style={{ marginBottom: '15px', fontSize: '18px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>Листы осмотра</h3>
               <Table
