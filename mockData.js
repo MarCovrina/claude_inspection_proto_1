@@ -1,4 +1,28 @@
 // Моковые данные
+// Список мероприятий для устранения дефектов
+export const remediationMeasures = [
+  { id: 1, name: 'Замена оборудования', category: 'replacement' },
+  { id: 2, name: 'Ремонт оборудования', category: 'repair' },
+  { id: 3, name: 'Восстановление изоляции', category: 'repair' },
+  { id: 4, name: 'Установка дополнительной изоляции', category: 'installation' },
+  { id: 5, name: 'Замена изоляторов', category: 'replacement' },
+  { id: 6, name: 'Очистка от загрязнений', category: 'maintenance' },
+  { id: 7, name: 'Подтяжка креплений', category: 'maintenance' },
+  { id: 8, name: 'Замена заземляющего проводника', category: 'replacement' },
+  { id: 9, name: 'Антикоррозийная обработка', category: 'treatment' },
+  { id: 10, name: 'Замена металлических элементов', category: 'replacement' },
+  { id: 11, name: 'Восстановление бетона', category: 'repair' },
+  { id: 12, name: 'Усиление фундамента', category: 'repair' },
+  { id: 13, name: 'Регулировка натяжения проводов', category: 'adjustment' },
+  { id: 14, name: 'Замена провода', category: 'replacement' },
+  { id: 15, name: 'Замена концевой муфты', category: 'replacement' },
+  { id: 16, name: 'Доливка масла', category: 'maintenance' },
+  { id: 17, name: 'Замена выключателя', category: 'replacement' },
+  { id: 18, name: 'Ремонт контактных соединений', category: 'repair' },
+  { id: 19, name: 'Установка предупреждающих знаков', category: 'installation' },
+  { id: 20, name: 'Тепловизионный контроль', category: 'diagnostics' },
+];
+
 export const initialTechPlaces = [
   // Опора (Support/Pole)
   {
