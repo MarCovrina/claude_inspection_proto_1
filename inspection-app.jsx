@@ -898,19 +898,23 @@ const InspectionApp = () => {
     let nextGroupId = 1;
 
     // Получение всех дефектов для выбранного тех.места
+    // Включает дефекты с критичностью != 'none' И дефекты с критичностью 'none', но с комментарием или фото
     const getAllDefects = () => {
       const defects = [];
       selectedTechPlace.stages.forEach(stage => {
         stage.defects.forEach(defect => {
-          // Дефекты с критичностью или с фото или с комментарием
-          const hasSeverity = defect.severity !== 'none';
-          const hasPhotos = defect.photos && defect.photos.length > 0;
+          // Дефекты с критичностью != 'none' всегда включаются
+          // Дефекты с критичностью 'none' включаются только если есть комментарий или фото
           const hasComment = defect.comment && defect.comment.trim() !== '';
+          const hasPhotos = defect.photos && defect.photos.length > 0;
+          const shouldInclude = defect.severity !== 'none' || hasComment || hasPhotos;
           
-          if (hasSeverity || hasPhotos || hasComment) {
+          if (shouldInclude) {
             defects.push({
               ...defect,
-              stageName: stage.name
+              stageName: stage.name,
+              // Флаг: можно ли назначить мероприятие (только для дефектов с критичностью != 'none')
+              canAssignMeasure: defect.severity !== 'none'
             });
           }
         });
@@ -1163,39 +1167,55 @@ const InspectionApp = () => {
           Добавить дефект
         </Button>
 
-        {/* Инструкция и кнопка выбрать все */}
+        {/* Статистика назначенных мероприятий */}
         <div style={{ 
           marginBottom: '16px', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
           padding: '12px 16px',
-          backgroundColor: '#f5f5f5',
-          borderRadius: '8px'
+          backgroundColor: '#f6ffed',
+          border: '1px solid #b7eb8f',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px'
         }}>
-          <span style={{ fontSize: '14px', color: '#666' }}>
-            Выберите дефекты, которые будут устранены одним мероприятием
+          <span style={{ fontSize: '14px', color: '#52c41a', fontWeight: '500' }}>
+            Наззначено мероприятий: {Object.keys(defectMeasures).length + Object.keys(defectGroups).length} из {defects.length}
           </span>
+        </div>
+
+        {/* Область для назначения общего мероприятия */}
+        <div style={{ 
+          marginBottom: '16px', 
+          padding: '12px 16px',
+          backgroundColor: '#f0f5ff',
+          border: '1px solid #91caff',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          flexWrap: 'nowrap'
+        }}>
+          <span style={{ fontSize: '14px', color: '#1890ff', fontWeight: '500', whiteSpace: 'nowrap' }}>
+            Выберите дефекты для назначения общего мероприятия
+          </span>
+          <div style={{ flex: 1 }} />
           <Button 
             size="small" 
             onClick={toggleSelectAll}
             type={selectAll ? 'primary' : 'default'}
           >
-            {selectAll ? 'Снять выделение со всех' : 'Выбрать все'}
+            {selectAll ? 'Снять все' : 'Выбрать все'}
           </Button>
+          {selectedDefectIds.length >= 2 && (
+            <Button
+              type="primary"
+              size="small"
+              onClick={openGroupMeasureModal}
+            >
+              Назначить мероприятие ({selectedDefectIds.length})
+            </Button>
+          )}
         </div>
-
-        {/* Кнопка "Выбрать мероприятие" - появляется при выборе 2+ дефектов */}
-        {selectedDefectIds.length >= 2 && (
-          <Button
-            type="primary"
-            size="large"
-            onClick={openGroupMeasureModal}
-            style={{ marginBottom: '16px' }}
-          >
-            Выбрать мероприятие ({selectedDefectIds.length} дефектов выбрано)
-          </Button>
-        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Отображение групп дефектов */}
@@ -1306,20 +1326,22 @@ const InspectionApp = () => {
               bodyStyle={{ padding: '20px 24px' }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleDefectSelection(defect.id)}
-                      style={{
-                        width: '20px',
-                        height: '20px',
-                        cursor: 'pointer',
-                        accentColor: '#1890ff',
-                        marginTop: '4px'
-                      }}
-                    />
+                    {defect.canAssignMeasure !== false && (
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleDefectSelection(defect.id)}
+                        style={{
+                          width: '20px',
+                          height: '20px',
+                          cursor: 'pointer',
+                          accentColor: '#1890ff',
+                          marginTop: '4px'
+                        }}
+                      />
+                    )}
                     <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>{defect.name}</h3>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1396,32 +1418,38 @@ const InspectionApp = () => {
                 )}
 
                 {/* Область выбора мероприятия */}
-                <div style={{ 
-                  marginTop: '8px', 
-                  paddingTop: '12px', 
-                  borderTop: '1px solid #f0f0f0' 
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span style={{ fontWeight: '500', fontSize: '14px' }}>Мероприятие:</span>
-                    {defectMeasures[defect.id] ? (
-                      <Tag
-                        color="green"
-                        style={{ padding: '4px 12px' }}
-                        closable
-                        onClose={() => removeMeasureFromDefect(defect.id)}
-                      >
-                        {getMeasureById(defectMeasures[defect.id])?.name}
-                      </Tag>
-                    ) : (
-                      <Button 
-                        size="small" 
-                        onClick={() => openMeasureModal(defect)}
-                      >
-                        Выбрать
-                      </Button>
-                    )}
+                {defect.canAssignMeasure !== false && (
+                  <div style={{ 
+                    marginTop: '8px', 
+                    paddingTop: '12px', 
+                    borderTop: '1px solid #f0f0f0',
+                    backgroundColor: defectMeasures[defect.id] ? '#f6ffed' : 'transparent',
+                    margin: '-8px -24px -20px',
+                    padding: '16px 24px 20px',
+                    borderRadius: '0 0 8px 8px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontWeight: '500', fontSize: '14px' }}>Мероприятие:</span>
+                      {defectMeasures[defect.id] ? (
+                        <Tag
+                          color="green"
+                          style={{ padding: '4px 12px' }}
+                          closable
+                          onClose={() => removeMeasureFromDefect(defect.id)}
+                        >
+                          {getMeasureById(defectMeasures[defect.id])?.name}
+                        </Tag>
+                      ) : (
+                        <Button 
+                          size="small" 
+                          onClick={() => openMeasureModal(defect)}
+                        >
+                          Выбрать
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </Card>
           )})}
