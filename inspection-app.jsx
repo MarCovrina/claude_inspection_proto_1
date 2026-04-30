@@ -1100,6 +1100,14 @@ const InspectionApp = () => {
             measureId: groupSelectedMeasureId
           }
         }));
+        // Удаляем ранее назначенные индивидуальные мероприятия у дефектов в группе
+        setDefectMeasures(prev => {
+          const updated = { ...prev };
+          selectedDefectIds.forEach(defectId => {
+            delete updated[defectId];
+          });
+          return updated;
+        });
         // Удаляем выбранные дефекты из списка выбранных
         setSelectedDefectIds([]);
         setSelectAll(false);
@@ -1247,7 +1255,7 @@ const InspectionApp = () => {
                   alignItems: 'center'
                 }}>
                   <span style={{ fontWeight: '600' }}>
-                    Группа: {groupDefects.length} дефектов
+                    Группа дефектов: {groupDefects.length}
                   </span>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <Button 
