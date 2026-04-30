@@ -1173,17 +1173,20 @@ const InspectionApp = () => {
 
         {/* Статистика назначенных мероприятий */}
         <div style={{ 
-          marginBottom: '16px', 
-          padding: '12px 16px',
-          backgroundColor: '#f6ffed',
-          border: '1px solid #b7eb8f',
-          borderRadius: '8px',
+          marginBottom: '16px',
           display: 'flex',
           alignItems: 'center',
-          gap: '16px'
+          gap: '12px'
         }}>
-          <span style={{ fontSize: '14px', color: '#52c41a', fontWeight: '500' }}>
-            Наззначено мероприятий: {Object.keys(defectMeasures).length + Object.keys(defectGroups).length} из {defects.length}
+          <Progress 
+            percent={Math.round(((Object.keys(defectMeasures).length + Object.keys(defectGroups).length) / Math.max(defects.filter(d => ['low', 'medium', 'high'].includes(d.severity)).length, 1)) * 100)} 
+            strokeColor="#52c41a"
+            showInfo={false}
+            style={{ flex: 1 }}
+          />
+          <span style={{ fontSize: '13px', fontWeight: 'normal' }}>
+            <span style={{ color: '#999' }}>Назначено мероприятий:</span>{' '}
+            <span style={{ color: '#000' }}>{Object.keys(defectMeasures).length + Object.keys(defectGroups).length} из {defects.filter(d => ['low', 'medium', 'high'].includes(d.severity)).length}</span>
           </span>
         </div>
 
@@ -1249,9 +1252,13 @@ const InspectionApp = () => {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <Button 
                       size="small" 
-                      danger 
-                      ghost 
                       onClick={() => removeGroup(groupId)}
+                      style={{ 
+                        backgroundColor: '#fff', 
+                        borderColor: '#fff', 
+                        color: '#1890ff',
+                        fontWeight: '600'
+                      }}
                     >
                       Распустить группу
                     </Button>
